@@ -10,6 +10,7 @@ import { Reminders } from "./app/views/Reminders";
 import { Review } from "./app/views/Review";
 import { SettingsView } from "./app/views/SettingsView";
 import { QuickForms, GoalForm } from "./app/forms";
+import { PwaInstallBanner } from "./app/pwa";
 import { useEffect, useState } from "react";
 
 const Views = () => {
@@ -29,8 +30,28 @@ const FirstGoal = () => {
 
 const Root = () => {
   const { data } = useStore();
-  if (!data.user) return <Auth />;
-  return (<Shell><Views /><QuickForms /><FirstGoal /></Shell>);
+  if (!data.user) {
+    return (
+      <>
+        <Auth />
+        <PwaInstallBanner />
+      </>
+    );
+  }
+  return (
+    <Shell>
+      <Views />
+      <QuickForms />
+      <FirstGoal />
+      <PwaInstallBanner />
+    </Shell>
+  );
 };
 
-export default function App() { return <StoreProvider><Root /></StoreProvider>; }
+export default function App() {
+  return (
+    <StoreProvider>
+      <Root />
+    </StoreProvider>
+  );
+}

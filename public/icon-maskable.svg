@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#24284A"/>
+      <stop offset="100%" stop-color="#15172A"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Full bleed background for adaptive/maskable icons -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- Compass Ring within safe zone (r=110) -->
+  <circle cx="256" cy="256" r="110" fill="none" stroke="#FFFCF8" stroke-opacity="0.18" stroke-width="6"/>
+  <circle cx="256" cy="256" r="130" fill="none" stroke="#FFFCF8" stroke-opacity="0.08" stroke-width="2"/>
+
+  <!-- Cardinal points -->
+  <circle cx="256" cy="136" r="4" fill="#F06A55"/>
+  <circle cx="256" cy="376" r="4" fill="#E0A21B"/>
+  <circle cx="136" cy="256" r="3" fill="#FFFCF8" fill-opacity="0.3"/>
+  <circle cx="376" cy="256" r="3" fill="#FFFCF8" fill-opacity="0.3"/>
+
+  <!-- Needle with Shadow -->
+  <g filter="url(#shadow)">
+    <!-- North Needle (Coral) -->
+    <path d="M 256 145 L 295 256 L 256 256 Z" fill="#F06A55"/>
+    <path d="M 256 145 L 217 256 L 256 256 Z" fill="#FF8A75"/>
+
+    <!-- South Needle (Butter) -->
+    <path d="M 256 367 L 295 256 L 256 256 Z" fill="#E0A21B"/>
+    <path d="M 256 367 L 217 256 L 256 256 Z" fill="#F5C55A"/>
+  </g>
+
+  <!-- Center Pivot Ring & Core -->
+  <circle cx="256" cy="256" r="21" fill="#1E2242"/>
+  <circle cx="256" cy="256" r="21" fill="none" stroke="#FFFCF8" stroke-width="4"/>
+  <circle cx="256" cy="256" r="7" fill="#FFFCF8"/>
+</svg>

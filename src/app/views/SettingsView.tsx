@@ -4,6 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { useStore } from "../store";
 import { PageHead, Panel, Segmented, ConfirmButton } from "../ui";
 import { parseRupiah } from "../forms";
+import { PwaSettingsSection } from "../pwa";
 import type { Theme, Tone } from "../types";
 
 export const SettingsView = () => {
@@ -87,6 +88,10 @@ export const SettingsView = () => {
             </div>
             <button className="btn btn-primary"><Save size={15} /> Simpan batas</button>
           </form>
+        </Panel>
+
+        <Panel title="Aplikasi Handphone (PWA)" sub="Jadikan seperti aplikasi Android atau iOS yang tampil langsung di home screen.">
+          <PwaSettingsSection />
         </Panel>
 
         <Panel title="Kelola data pribadi" sub="Datamu milikmu. Ekspor atau hapus kapan saja.">
