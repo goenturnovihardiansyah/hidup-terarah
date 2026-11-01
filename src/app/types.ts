@@ -33,6 +33,70 @@ export interface ReminderLog {
 }
 export interface Reflection { id: ID; week_start: string; learned: string; to_improve: string; created_at: string }
 
+// ---- Tracking Kebugaran, Olahraga, Kalori & Berat Badan ----
+export type WorkoutIntensity = "ringan" | "sedang" | "berat";
+
+export interface WorkoutLog {
+  id: ID;
+  date: string; // YYYY-MM-DD
+  activity: string; // Misal: "Lari", "Gym", "Sepeda", "Renang", "Jalan Kaki"
+  duration_minutes: number;
+  calories_burned: number;
+  intensity: WorkoutIntensity;
+  notes?: string;
+  created_at: string;
+}
+
+export type MealType = "sarapan" | "siang" | "malam" | "snack";
+
+export interface CalorieLog {
+  id: ID;
+  date: string; // YYYY-MM-DD
+  meal_type: MealType;
+  food_name: string;
+  calories: number;
+  created_at: string;
+}
+
+export interface WeightLog {
+  id: ID;
+  date: string; // YYYY-MM-DD
+  weight_kg: number;
+  note?: string;
+  created_at: string;
+}
+
+export interface WaterLog {
+  id: ID;
+  date: string; // YYYY-MM-DD
+  amount_ml: number;
+  created_at: string;
+}
+
+export interface FitnessProfile {
+  target_calories: number; // default: 2000 kcal
+  target_weight_kg: number; // default: 65 kg
+  height_cm: number; // default: 170 cm
+  daily_water_target_ml: number; // default: 2000 ml
+  weekly_workout_target_minutes: number; // default: 150 mnt (WHO rec)
+}
+
+// ---- Pop-up Apresiasi Streak Kebiasaan ----
+export interface StreakMilestone {
+  habitId: string;
+  habitName: string;
+  habitIcon: string;
+  habitColor: Tint;
+  streakCount: number;
+  unit: string;
+  title: string;
+  subtitle: string;
+  message: string;
+  quote: string;
+  author: string;
+  badge: string;
+}
+
 export type Tint =
   | "lilac"
   | "rose"
@@ -61,4 +125,9 @@ export interface AppData {
   transactions: Transaction[];
   reminders: ReminderLog[];
   reflections: Reflection[];
+  workouts?: WorkoutLog[];
+  calories?: CalorieLog[];
+  weights?: WeightLog[];
+  waterLogs?: WaterLog[];
+  fitnessProfile?: FitnessProfile;
 }

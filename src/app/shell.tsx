@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { House, Target, Repeat, CalendarDays, Wallet, BellRing, ChartColumn, Settings, Search, Bell, Plus, Ellipsis, X, NotebookPen, Cloud, CloudCheck, RefreshCw } from "lucide-react";
+import { House, Target, Repeat, CalendarDays, Wallet, BellRing, ChartColumn, Settings, Search, Bell, Plus, Ellipsis, X, NotebookPen, Cloud, CloudCheck, RefreshCw, Activity } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useStore, type View } from "./store";
@@ -15,6 +15,7 @@ export const NAV: { v: View; l: string; icon: typeof House; tint: string }[] = [
   { v: "kebiasaan", l: "Kebiasaan", icon: Repeat, tint: "var(--mint)" },
   { v: "jadwal", l: "Jadwal", icon: CalendarDays, tint: "var(--peach)" },
   { v: "keuangan", l: "Keuangan", icon: Wallet, tint: "var(--butter)" },
+  { v: "kebugaran", l: "Kebugaran", icon: Activity, tint: "var(--emerald)" },
   { v: "pengingat", l: "Pengingat", icon: BellRing, tint: "var(--coral)" },
   { v: "evaluasi", l: "Evaluasi", icon: ChartColumn, tint: "var(--sky)" },
   { v: "pengaturan", l: "Pengaturan", icon: Settings, tint: "var(--muted)" },

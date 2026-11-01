@@ -25,6 +25,14 @@ export const defaultCategories = (): Category[] => [
 export const emptyData = (): AppData => ({
   version: 1, user: null, prefs: { ...defaultPrefs }, goals: [], steps: [], habits: [], habitLogs: [],
   schedules: [], categories: defaultCategories(), transactions: [], reminders: [], reflections: [],
+  workouts: [], calories: [], weights: [], waterLogs: [],
+  fitnessProfile: {
+    target_calories: 2000,
+    target_weight_kg: 65,
+    height_cm: 170,
+    daily_water_target_ml: 2000,
+    weekly_workout_target_minutes: 150,
+  },
 });
 
 /** pseudo-random deterministik */

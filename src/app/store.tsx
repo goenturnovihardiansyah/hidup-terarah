@@ -1,8 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { AppData, Goal, GoalStep, Habit, Schedule, Transaction, Reflection, Preferences, Category } from "./types";
+import type { 
+  AppData, Goal, GoalStep, Habit, Schedule, Transaction, 
+  Reflection, Preferences, Category, WorkoutLog, CalorieLog, 
+  WeightLog, FitnessProfile, StreakMilestone 
+} from "./types";
 import { emptyData, demoData } from "./seed";
 import { uid, ymd, fmtTime, startOfDay, addDays } from "./dates";
-import { detectDrift, effectiveStatus, habitsForToday, isDone, reminderText } from "./logic";
+import { detectDrift, effectiveStatus, habitsForToday, isDone, reminderText, streak } from "./logic";
+import { getStreakMilestoneContent } from "./quotes";
 import {
   isAnyCloudConfigured,
   getCloudSettings,
@@ -78,6 +83,54 @@ export const sanitizeData = (d: AppData): AppData => {
     return { ...t, id };
   });
 
+  const seenWorkouts = new Set<string>();
+  const workouts = (d.workouts || []).map((w) => {
+    let id = w?.id;
+    if (!id || typeof id !== "string" || id === "undefined" || seenWorkouts.has(id)) {
+      id = uid();
+    }
+    seenWorkouts.add(id);
+    return { ...w, id };
+  });
+
+  const seenCalories = new Set<string>();
+  const calories = (d.calories || []).map((c) => {
+    let id = c?.id;
+    if (!id || typeof id !== "string" || id === "undefined" || seenCalories.has(id)) {
+      id = uid();
+    }
+    seenCalories.add(id);
+    return { ...c, id };
+  });
+
+  const seenWeights = new Set<string>();
+  const weights = (d.weights || []).map((w) => {
+    let id = w?.id;
+    if (!id || typeof id !== "string" || id === "undefined" || seenWeights.has(id)) {
+      id = uid();
+    }
+    seenWeights.add(id);
+    return { ...w, id };
+  });
+
+  const seenWater = new Set<string>();
+  const waterLogs = (d.waterLogs || []).map((w) => {
+    let id = w?.id;
+    if (!id || typeof id !== "string" || id === "undefined" || seenWater.has(id)) {
+      id = uid();
+    }
+    seenWater.add(id);
+    return { ...w, id };
+  });
+
+  const fitnessProfile: FitnessProfile = d.fitnessProfile || {
+    target_calories: 2000,
+    target_weight_kg: 65,
+    height_cm: 170,
+    daily_water_target_ml: 2000,
+    weekly_workout_target_minutes: 150,
+  };
+
   return {
     ...d,
     habits,
@@ -85,6 +138,11 @@ export const sanitizeData = (d: AppData): AppData => {
     goals,
     steps,
     transactions,
+    workouts,
+    calories,
+    weights,
+    waterLogs,
+    fitnessProfile,
   };
 };
 
@@ -105,7 +163,7 @@ const save = (d: AppData) => {
   }
 };
 
-export type View = "beranda" | "tujuan" | "kebiasaan" | "jadwal" | "keuangan" | "pengingat" | "evaluasi" | "pengaturan";
+export type View = "beranda" | "tujuan" | "kebiasaan" | "jadwal" | "keuangan" | "kebugaran" | "pengingat" | "evaluasi" | "pengaturan";
 export type QuickKind = "agenda" | "kebiasaan" | "transaksi" | "tujuan" | null;
 export type CloudSyncStatus = "unconfigured" | "idle" | "syncing" | "synced" | "error";
 
@@ -122,6 +180,10 @@ const useStoreValue = () => {
   const [focusDate, setFocusDate] = useState<string>(ymd(new Date()));
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [now, setNow] = useState(new Date());
+
+  // Apresiasi Milestone Streak Pop-up
+  const [milestoneCelebration, setMilestoneCelebration] = useState<StreakMilestone | null>(null);
+  const dismissMilestone = useCallback(() => setMilestoneCelebration(null), []);
 
   // Cloud Sync State
   const [cloudSettings, setCloudSettingsState] = useState<CloudSettings>(() => getCloudSettings());
@@ -533,13 +595,44 @@ const useStoreValue = () => {
 
       toggleHabit: (h: Habit, day = ymd(new Date())) => {
         const done = isDone(dataRef.current, h.id, day);
+        const willBeDone = !done;
+
         update((d) => ({
           ...d,
           habitLogs: done
             ? d.habitLogs.filter((l) => !(l.habit_id === h.id && l.log_date === day))
             : [...d.habitLogs, { id: uid(), habit_id: h.id, log_date: day, is_done: true }],
         }));
-        if (!done && day === ymd(new Date())) toast(`"${h.name}" tercatat. Mantap!`);
+
+        if (willBeDone) {
+          // Hitung streak baru secara akurat dengan menyertakan log hari ini
+          const simLogs = [
+            ...dataRef.current.habitLogs.filter((l) => !(l.habit_id === h.id && l.log_date === day)),
+            { id: "temp", habit_id: h.id, log_date: day, is_done: true },
+          ];
+          const simData: AppData = { ...dataRef.current, habitLogs: simLogs };
+          const st = streak(simData, h, new Date());
+          const count = st.n;
+
+          // Milestone khusus: 1x, 3x, 7x, atau kelipatan 7 (14, 21, 28...), atau 30, 50, 100
+          const isMilestone =
+            count === 1 ||
+            count === 3 ||
+            count === 7 ||
+            (count > 7 && count % 7 === 0) ||
+            count === 30 ||
+            count === 50 ||
+            count === 100;
+
+          if (isMilestone) {
+            const milestoneContent = getStreakMilestoneContent(h, count);
+            setMilestoneCelebration(milestoneContent);
+          } else {
+            if (day === ymd(new Date())) {
+              toast(`"${h.name}" tercatat. Mantap!`);
+            }
+          }
+        }
       },
       saveHabit: (h: Partial<Habit> & { name: string }) =>
         update((d) => {
@@ -588,11 +681,11 @@ const useStoreValue = () => {
                 .map((x) =>
                   x.id === validId
                     ? ({
-                        ...x,
-                        ...s,
-                        id: validId,
-                        status: x.status === "terlewat" ? "terjadwal" : (s.status || x.status),
-                      } as Schedule)
+                      ...x,
+                      ...s,
+                      id: validId,
+                      status: x.status === "terlewat" ? "terjadwal" : (s.status || x.status),
+                    } as Schedule)
                     : x
                 )
                 .map((x) => ({ ...x, status: effectiveStatus(x) })),
@@ -622,8 +715,8 @@ const useStoreValue = () => {
             x.id !== s.id
               ? x
               : done
-              ? { ...x, status: effectiveStatus({ ...x, status: "terjadwal" }), completed_at: undefined }
-              : { ...x, status: "selesai", completed_at: new Date().toISOString() }
+                ? { ...x, status: effectiveStatus({ ...x, status: "terjadwal" }), completed_at: undefined }
+                : { ...x, status: "selesai", completed_at: new Date().toISOString() }
           ),
         }));
         if (!done) toast(`Agenda "${s.title}" selesai.`);
@@ -715,6 +808,90 @@ const useStoreValue = () => {
       },
       addCategory: (c: Omit<Category, "id">) => update((d) => ({ ...d, categories: [...d.categories, { ...c, id: uid() }] })),
 
+      // ---- Aksi Kebugaran & Olahraga ----
+      addWorkout: (w: Omit<WorkoutLog, "id" | "created_at">) => {
+        const id = uid();
+        const created_at = new Date().toISOString();
+        update((d) => ({
+          ...d,
+          workouts: [...(d.workouts || []), { ...w, id, created_at }],
+        }));
+        toast(`Olahraga "${w.activity}" (${w.duration_minutes} mnt) tercatat! 🔥`);
+      },
+      deleteWorkout: (id: string) => {
+        if (!id || id === "undefined") return;
+        update((d) => ({
+          ...d,
+          workouts: (d.workouts || []).filter((w) => w.id !== id),
+        }));
+      },
+      addCalorie: (c: Omit<CalorieLog, "id" | "created_at">) => {
+        const id = uid();
+        const created_at = new Date().toISOString();
+        update((d) => ({
+          ...d,
+          calories: [...(d.calories || []), { ...c, id, created_at }],
+        }));
+        toast(`${c.food_name} (+${c.calories} kcal) tercatat! 🥗`);
+      },
+      deleteCalorie: (id: string) => {
+        if (!id || id === "undefined") return;
+        update((d) => ({
+          ...d,
+          calories: (d.calories || []).filter((c) => c.id !== id),
+        }));
+      },
+      addWeight: (w: Omit<WeightLog, "id" | "created_at">) => {
+        const id = uid();
+        const created_at = new Date().toISOString();
+        update((d) => ({
+          ...d,
+          weights: [
+            ...(d.weights || []).filter((x) => x.date !== w.date),
+            { ...w, id, created_at },
+          ].sort((a, b) => b.date.localeCompare(a.date)),
+        }));
+        toast(`Timbangan ${w.weight_kg} kg berhasil dicatat! ⚖️`);
+      },
+      deleteWeight: (id: string) => {
+        if (!id || id === "undefined") return;
+        update((d) => ({
+          ...d,
+          weights: (d.weights || []).filter((w) => w.id !== id),
+        }));
+      },
+      addWater: (amount_ml = 250, date = ymd(new Date())) => {
+        const id = uid();
+        const created_at = new Date().toISOString();
+        update((d) => ({
+          ...d,
+          waterLogs: [...(d.waterLogs || []), { id, date, amount_ml, created_at }],
+        }));
+        toast(`+${amount_ml}ml air minum tercatat! 💧`);
+      },
+      deleteWater: (id: string) => {
+        if (!id || id === "undefined") return;
+        update((d) => ({
+          ...d,
+          waterLogs: (d.waterLogs || []).filter((w) => w.id !== id),
+        }));
+      },
+      updateFitnessProfile: (p: Partial<FitnessProfile>) => {
+        update((d) => ({
+          ...d,
+          fitnessProfile: {
+            target_calories: 2000,
+            target_weight_kg: 65,
+            height_cm: 170,
+            daily_water_target_ml: 2000,
+            weekly_workout_target_minutes: 150,
+            ...(d.fitnessProfile || {}),
+            ...p,
+          },
+        }));
+        toast("Target kebugaran diperbarui.");
+      },
+
       readReminder: (id: string) => update((d) => ({ ...d, reminders: d.reminders.map((r) => (r.id === id ? { ...r, is_read: true } : r)) })),
       readAll: () => update((d) => ({ ...d, reminders: d.reminders.map((r) => ({ ...r, is_read: true })) })),
 
@@ -741,6 +918,8 @@ const useStoreValue = () => {
     toasts,
     toast,
     dismissToast,
+    milestoneCelebration,
+    dismissMilestone,
     cloudSettings,
     cloudStatus,
     cloudError,

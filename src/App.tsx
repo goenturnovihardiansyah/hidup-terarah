@@ -6,17 +6,29 @@ import { Goals } from "./app/views/Goals";
 import { Habits } from "./app/views/Habits";
 import { Schedule } from "./app/views/Schedule";
 import { Finance } from "./app/views/Finance";
+import { Fitness } from "./app/views/Fitness";
 import { Reminders } from "./app/views/Reminders";
 import { Review } from "./app/views/Review";
 import { SettingsView } from "./app/views/SettingsView";
 import { QuickForms, GoalForm } from "./app/forms";
+import { StreakMilestoneModal } from "./app/celebration";
 import { PwaInstallBanner } from "./app/pwa";
 import { useEffect, useState } from "react";
 
 const Views = () => {
   const { view } = useStore();
   useEffect(() => { window.scrollTo({ top: 0 }); }, [view]);
-  const V = { beranda: Dashboard, tujuan: Goals, kebiasaan: Habits, jadwal: Schedule, keuangan: Finance, pengingat: Reminders, evaluasi: Review, pengaturan: SettingsView }[view];
+  const V = {
+    beranda: Dashboard,
+    tujuan: Goals,
+    kebiasaan: Habits,
+    jadwal: Schedule,
+    keuangan: Finance,
+    kebugaran: Fitness,
+    pengingat: Reminders,
+    evaluasi: Review,
+    pengaturan: SettingsView,
+  }[view];
   return <div key={view} className="animate-rise"><V /></div>;
 };
 
@@ -43,6 +55,7 @@ const Root = () => {
       <Views />
       <QuickForms />
       <FirstGoal />
+      <StreakMilestoneModal />
       <PwaInstallBanner />
     </Shell>
   );

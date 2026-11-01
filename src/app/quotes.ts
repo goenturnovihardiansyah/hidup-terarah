@@ -1,3 +1,5 @@
+import type { Habit, StreakMilestone } from "./types";
+
 export interface MotivationalQuote {
   quote: string;
   author: string;
@@ -243,5 +245,153 @@ export const getDailyReflectionQuote = (date = new Date()): MotivationalQuote =>
   // Beri offset agar quote di refleksi dan hero berbeda
   const idx = Math.abs(dayOfYear + 7) % DAILY_MOTIVATIONS.length;
   return DAILY_MOTIVATIONS[idx];
+};
+
+/**
+ * Menyusun konten pop-up apresiasi ketika kebiasaan mencapai streak khusus (1x, 3x, 7x, 14x, 21x, dan kelipatan selanjutnya)
+ */
+export const getStreakMilestoneContent = (habit: Habit, count: number): StreakMilestone => {
+  const habitId = habit.id;
+  const habitName = habit.name;
+  const habitIcon = habit.icon || "✨";
+  const habitColor = habit.color || "lilac";
+  const unit = habit.frequency_type === "mingguan" ? "pekan" : habit.frequency_type === "bulanan" ? "bulan" : "hari";
+
+  if (count === 1) {
+    return {
+      habitId,
+      habitName,
+      habitIcon,
+      habitColor,
+      streakCount: count,
+      unit,
+      badge: "Langkah Pertama",
+      title: "Langkah Pertama Telah Dimulai! 🌱",
+      subtitle: "1 Hari Berjalan Penuh Kesadaran",
+      message: `Selamat telah memulai kebiasaan "${habitName}". Mengawali adalah bagian tersulit dari setiap transformasi, dan hari ini kamu membuktikan keberanianmu untuk bergerak!`,
+      quote: "Perjalanan seribu mil selalu dimulai dari satu langkah kecil.",
+      author: "Lao Tzu",
+    };
+  }
+
+  if (count === 3) {
+    return {
+      habitId,
+      habitName,
+      habitIcon,
+      habitColor,
+      streakCount: count,
+      unit,
+      badge: "Pola Terbentuk",
+      title: "3 Hari Berturut-turut! Pola Mulai Terbentuk 🔥",
+      subtitle: "3 Hari Konsisten Tanpa Jeda",
+      message: `Tiga kali beruntun pada "${habitName}" membuktikan ini bukan lagi sekadar niat sesaat. Pola perilaku positif mulai mengakar kuat dalam rutinitas harianmu.`,
+      quote: "Bukan apa yang kita lakukan sesekali yang membentuk hidup kita, tapi apa yang kita lakukan secara konsisten.",
+      author: "Tony Robbins",
+    };
+  }
+
+  if (count === 7) {
+    return {
+      habitId,
+      habitName,
+      habitIcon,
+      habitColor,
+      streakCount: count,
+      unit,
+      badge: "Pencapaian Pekanan",
+      title: "1 Pekan Penuh Konsisten! Pencapaian Emas 🏆",
+      subtitle: "7 Hari Disiplin Sempurna",
+      message: `Luar biasa tangguh! Kamu sukses menjaga komitmen "${habitName}" selama 7 hari penuh tanpa terputus. Ini adalah bukti nyata kapasitas disiplinmu!`,
+      quote: "Kita adalah apa yang kita lakukan berulang kali. Keunggulan bukanlah sebuah tindakan, melainkan kebiasaan.",
+      author: "Aristoteles",
+    };
+  }
+
+  if (count === 14) {
+    return {
+      habitId,
+      habitName,
+      habitIcon,
+      habitColor,
+      streakCount: count,
+      unit,
+      badge: "Disiplin Baja",
+      title: "2 Pekan Tanpa Terputus! Disiplin Baja ⚡",
+      subtitle: "14 Hari Mengukir Momentum",
+      message: `Dua minggu berturut-turut menjalankan "${habitName}"! Rantai kebiasaanmu semakin solid dan tidak mudah goyah oleh rasa malas. Pertahankan momentum emas ini!`,
+      quote: "Disiplin adalah jembatan penghubung antara impian dan pencapaian nyata.",
+      author: "Jim Rohn",
+    };
+  }
+
+  if (count === 21) {
+    return {
+      habitId,
+      habitName,
+      habitIcon,
+      habitColor,
+      streakCount: count,
+      unit,
+      badge: "Habit Formed",
+      title: "21 Hari: Kebiasaan Resmi Terbentuk! 🌟",
+      subtitle: "Milestone Emas 21 Hari",
+      message: `Pencapaian legendaris! Menurut riset psikologi perilaku, 21 hari konsistensi pada "${habitName}" telah mengubah aksi sadar menjadi kebiasaan alami otakmu. Kamu telah naik level!`,
+      quote: "Perubahan kecil tidak terlihat perbedaannya dalam sehari, tetapi dampaknya berlipat ganda dalam hitungan bulan.",
+      author: "James Clear (Atomic Habits)",
+    };
+  }
+
+  if (count === 30) {
+    return {
+      habitId,
+      habitName,
+      habitIcon,
+      habitColor,
+      streakCount: count,
+      unit,
+      badge: "Master Kebiasaan",
+      title: "1 Bulan Penuh Konsistensi! Dedikasi Juara 👑",
+      subtitle: "30 Hari Melampaui Batas",
+      message: `Satu bulan penuh tanpa pernah menyerah pada "${habitName}". Integritasmu terhadap dirimu sendiri sangat menginspirasi. Kamu telah menjadi pribadi yang baru!`,
+      quote: "Disiplin hari ini terasa ringan dibanding beban penyesalan seumur hidup.",
+      author: "Jim Rohn",
+    };
+  }
+
+  // Kelipatan 7 berikutnya (28, 35, 42, 49, 56, dll)
+  if (count % 7 === 0) {
+    const pekan = Math.floor(count / 7);
+    return {
+      habitId,
+      habitName,
+      habitIcon,
+      habitColor,
+      streakCount: count,
+      unit,
+      badge: `${pekan} Pekan Konsisten`,
+      title: `${count} Hari Beruntun! Momentum Tak Terhentikan 🚀`,
+      subtitle: `${pekan} Pekan Penuh Keteguhan`,
+      message: `Hebat sekali! Rantai kebiasaan "${habitName}" kini telah menyala terang selama ${count} hari. Dedikasimu adalah bukti nyata komitmen hidup terarah.`,
+      quote: "Kemenangan kecil harian bila diulang secara konsisten akan menghasilkan mahakarya seiring waktu.",
+      author: "Robin Sharma (The 5 AM Club)",
+    };
+  }
+
+  // Milestone angka bulat lainnya (50, 100, dll)
+  return {
+    habitId,
+    habitName,
+    habitIcon,
+    habitColor,
+    streakCount: count,
+    unit,
+    badge: `${count} Hari Dedikasi`,
+    title: `${count} Hari Konsisten! Pencapaian Bintang 🏅`,
+    subtitle: `${count} Hari Tanpa Kompromi`,
+    message: `Menjaga "${habitName}" hingga ${count} hari adalah pencapaian istimewa yang hanya bisa diraih oleh mereka yang memiliki tekad baja dan fokus mendalam. Selamat!`,
+    quote: "Keberhasilan bukan milik orang pintar, tapi milik mereka yang senantiasa berjuang dan pantang menyerah.",
+    author: "B.J. Habibie",
+  };
 };
 
