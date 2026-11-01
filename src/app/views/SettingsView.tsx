@@ -91,7 +91,7 @@ export const SettingsView = () => {
           </form>
         </Panel>
 
-        <Panel title="Database Cloud (Buka di Mana Saja)" sub="Sinkronisasikan tujuan, kebiasaan, dan jadwal secara otomatis antar HP & Laptop via Supabase.">
+        <Panel title="Database Cloud (Buka di Mana Saja)" sub="Sinkronisasikan tujuan, kebiasaan, dan jadwal secara otomatis antar HP & Laptop via Turso (Anti-Pause) atau cloud lainnya.">
           <CloudDatabaseSection />
         </Panel>
 
