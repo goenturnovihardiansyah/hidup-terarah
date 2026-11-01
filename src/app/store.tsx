@@ -21,6 +21,7 @@ import {
   testTursoConnection,
   saveTursoConfig,
   clearTursoConfig,
+  checkTursoServerlessStatus,
 } from "./turso";
 
 const KEY = "hidup-terarah:v1";
@@ -126,15 +127,22 @@ const useStoreValue = () => {
 
   // Tarik data cloud awal jika user sudah ada dan cloud aktif
   useEffect(() => {
-    if (data.user?.email && isAnyCloudConfigured()) {
-      fetchAppDataFromCloud(data.user.email).then((res) => {
-        if (res.success && res.data) {
-          setData((curr) => ({ ...curr, ...res.data }));
-          setCloudStatus("synced");
-          setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
-        }
-      });
-    }
+    // Cek koneksi serverless Turso (Vercel Integration)
+    checkTursoServerlessStatus().then((tursoServerlessActive) => {
+      if (tursoServerlessActive) {
+        setCloudStatus((prev) => (prev === "unconfigured" ? "idle" : prev));
+      }
+
+      if (data.user?.email && (isAnyCloudConfigured() || tursoServerlessActive)) {
+        fetchAppDataFromCloud(data.user.email).then((res) => {
+          if (res.success && res.data) {
+            setData((curr) => ({ ...curr, ...res.data }));
+            setCloudStatus("synced");
+            setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
+          }
+        });
+      }
+    });
   }, []);
 
   // ---- Mesin pengingat & teguran (jalan tiap 30 detik selama aplikasi terbuka) ----

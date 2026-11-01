@@ -18,9 +18,17 @@ export default async function handler(req: Request) {
 
   const url = new URL(req.url);
 
-  // Turso credentials
-  const tursoUrl = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL;
-  const tursoToken = process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN;
+  // Turso credentials (mendukung Vercel Marketplace Turso Integration & standard env)
+  const tursoUrl =
+    process.env.TURSO_DATABASE_URL ||
+    process.env.DATABASE_URL ||
+    process.env.TURSO_DB_URL ||
+    process.env.LIBSQL_URL;
+  const tursoToken =
+    process.env.TURSO_AUTH_TOKEN ||
+    process.env.DATABASE_AUTH_TOKEN ||
+    process.env.TURSO_GROUP_AUTH_TOKEN ||
+    process.env.LIBSQL_AUTH_TOKEN;
 
   // Upstash / Vercel KV fallback
   const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;

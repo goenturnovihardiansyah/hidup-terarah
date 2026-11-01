@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Cloud,
   CloudCheck,
@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useStore } from "./store";
 import { SQL_SETUP_SCRIPT, getSupabaseConfig } from "./supabase";
-import { getTursoConfig } from "./turso";
+import { getTursoConfig, checkTursoServerlessStatus } from "./turso";
 import type { CloudProvider } from "./cloud-db";
 
 export const CloudDatabaseSection = () => {
@@ -57,6 +57,11 @@ export const CloudDatabaseSection = () => {
   const [loading, setLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isServerlessTursoActive, setIsServerlessTursoActive] = useState(false);
+
+  useEffect(() => {
+    checkTursoServerlessStatus().then(setIsServerlessTursoActive);
+  }, []);
 
   const isConnected = cloudStatus !== "unconfigured";
 
@@ -288,6 +293,18 @@ export const CloudDatabaseSection = () => {
           <p className="text-xs text-mute">
             Turso adalah database cloud berbasis SQLite yang digunakan di <strong>Mushola Arrisalah</strong>. Kuota gratisnya sangat besar (<strong>9 GB storage, 500 database gratis, 1 Miliar query</strong>) dan <strong>TIDAK PERNAH DI-PAUSE</strong>!
           </p>
+
+          {isServerlessTursoActive && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-mint/40 bg-mint-bg/40 p-3 text-xs text-mint">
+              <Check size={16} className="mt-0.5 shrink-0 text-mint" />
+              <div>
+                <p className="font-bold">Terhubung Otomatis via Vercel Integration!</p>
+                <p className="mt-0.5 text-[11px] text-mute leading-relaxed">
+                  Database Turso (<strong>hidupterarahpps</strong>) sudah aktif di backend Vercel. Data aplikasi Anda akan otomatis tersinkron ke cloud tanpa perlu mengisi form di bawah.
+                </p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSaveTurso} className="space-y-3 pt-1">
             <div>

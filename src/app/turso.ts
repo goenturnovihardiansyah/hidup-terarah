@@ -109,8 +109,24 @@ export const saveTursoConfig = async (
 
 export const clearTursoConfig = () => {
   localStorage.removeItem(TURSO_CONFIG_KEY);
+  localStorage.removeItem("hidup-terarah:turso-serverless-active");
   cachedClient = null;
   cachedKey = "";
+};
+
+export const checkTursoServerlessStatus = async (): Promise<boolean> => {
+  try {
+    const res = await fetch("/api/sync?health=1");
+    if (!res.ok) return false;
+    const json = await res.json();
+    const active = Boolean(json.turso_configured);
+    if (active) {
+      localStorage.setItem("hidup-terarah:turso-serverless-active", "1");
+    }
+    return active;
+  } catch {
+    return false;
+  }
 };
 
 export const syncTursoData = async (
@@ -118,7 +134,21 @@ export const syncTursoData = async (
   data: AppData
 ): Promise<{ success: boolean; error?: string }> => {
   const client = getTursoClient();
-  if (!client) return { success: false, error: "Database Turso belum dikonfigurasi." };
+  if (!client) {
+    // Fallback otomatis ke serverless /api/sync jika terhubung via Vercel Integration
+    try {
+      const res = await fetch("/api/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), data }),
+      });
+      const json = await res.json();
+      return json;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, error: msg };
+    }
+  }
 
   const cleanEmail = email.trim().toLowerCase();
   const payload = JSON.stringify(data);
@@ -146,7 +176,24 @@ export const fetchTursoData = async (
   email: string
 ): Promise<{ success: boolean; data?: AppData; error?: string }> => {
   const client = getTursoClient();
-  if (!client) return { success: false, error: "Database Turso belum dikonfigurasi." };
+  if (!client) {
+    // Fallback otomatis ke serverless /api/sync jika terhubung via Vercel Integration
+    try {
+      const res = await fetch(`/api/sync?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+      if (!res.ok) {
+        if (res.status === 404) {
+          return { success: false, error: "Belum ada data di cloud untuk email ini." };
+        }
+        const json = await res.json().catch(() => ({}));
+        return { success: false, error: json.error || `HTTP ${res.status}` };
+      }
+      const json = await res.json();
+      return json;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, error: msg };
+    }
+  }
 
   const cleanEmail = email.trim().toLowerCase();
 
@@ -170,3 +217,4 @@ export const fetchTursoData = async (
     return { success: false, error: msg };
   }
 };
+

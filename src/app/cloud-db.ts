@@ -57,7 +57,7 @@ export const getCloudSettings = (): CloudSettings => {
 export const isAnyCloudConfigured = (): boolean => {
   const cfg = getCloudSettings();
   if (cfg.provider === "turso") {
-    return isTursoConfigured();
+    return isTursoConfigured() || localStorage.getItem("hidup-terarah:turso-serverless-active") === "1";
   }
   if (cfg.provider === "vercel_kv") {
     return true; // Dicoba via /api/sync
