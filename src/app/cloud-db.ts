@@ -1,0 +1,276 @@
+import type { AppData } from "./types";
+import {
+  getSupabaseConfig,
+  syncDataToCloud as syncSupabase,
+  fetchDataFromCloud as fetchSupabase,
+} from "./supabase";
+
+export type CloudProvider = "upstash" | "pantry" | "supabase";
+
+export interface UpstashConfig {
+  url: string;
+  token: string;
+}
+
+export interface PantryConfig {
+  pantryId: string;
+}
+
+export interface CloudSettings {
+  provider: CloudProvider;
+  upstash?: UpstashConfig;
+  pantry?: PantryConfig;
+}
+
+const SETTINGS_KEY = "hidup-terarah:cloud-settings";
+
+export const getCloudSettings = (): CloudSettings => {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.provider) return parsed;
+    }
+  } catch {
+    /* abaikan */
+  }
+
+  // Jika sebelumnya sudah ada config Supabase
+  if (getSupabaseConfig()) {
+    return { provider: "supabase" };
+  }
+
+  // Default provider rekomendasi: Upstash (bebas pause, ada di Vercel & upstash.com)
+  return { provider: "upstash" };
+};
+
+export const isAnyCloudConfigured = (): boolean => {
+  const cfg = getCloudSettings();
+  if (cfg.provider === "upstash") {
+    return Boolean(cfg.upstash?.url && cfg.upstash?.token);
+  }
+  if (cfg.provider === "pantry") {
+    return Boolean(cfg.pantry?.pantryId);
+  }
+  if (cfg.provider === "supabase") {
+    return getSupabaseConfig() !== null;
+  }
+  return false;
+};
+
+// ==================== UPSTASH (REDIS REST API) ====================
+export const testUpstashConnection = async (
+  url: string,
+  token: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const cleanUrl = url.trim().replace(/\/+$/, "");
+    const cleanToken = token.trim();
+    if (!cleanUrl.startsWith("https://")) {
+      return { success: false, error: "URL Upstash harus dimulai dengan https://" };
+    }
+
+    const res = await fetch(`${cleanUrl}/ping`, {
+      headers: { Authorization: `Bearer ${cleanToken}` },
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      return { success: false, error: `Upstash gagal: ${res.status} ${txt}` };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
+  }
+};
+
+export const syncUpstash = async (
+  email: string,
+  data: AppData,
+  cfg: UpstashConfig
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const cleanUrl = cfg.url.trim().replace(/\/+$/, "");
+    const cleanToken = cfg.token.trim();
+    const key = `hidup_terarah:${encodeURIComponent(email.trim().toLowerCase())}`;
+
+    const res = await fetch(`${cleanUrl}/set/${key}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${cleanToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      return { success: false, error: `Gagal simpan ke Upstash: ${txt}` };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
+  }
+};
+
+export const fetchUpstash = async (
+  email: string,
+  cfg: UpstashConfig
+): Promise<{ success: boolean; data?: AppData; error?: string }> => {
+  try {
+    const cleanUrl = cfg.url.trim().replace(/\/+$/, "");
+    const cleanToken = cfg.token.trim();
+    const key = `hidup_terarah:${encodeURIComponent(email.trim().toLowerCase())}`;
+
+    const res = await fetch(`${cleanUrl}/get/${key}`, {
+      headers: { Authorization: `Bearer ${cleanToken}` },
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      return { success: false, error: `Gagal ambil data: ${txt}` };
+    }
+
+    const json = await res.json();
+    if (!json || json.result === null || json.result === undefined) {
+      return { success: false, error: "Belum ada data untuk email ini." };
+    }
+
+    const payload = typeof json.result === "string" ? JSON.parse(json.result) : json.result;
+    return { success: true, data: payload as AppData };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
+  }
+};
+
+// ==================== PANTRY CLOUD (ZERO CONFIG JSON) ====================
+export const testPantryConnection = async (
+  pantryId: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const cleanId = pantryId.trim();
+    if (!cleanId) return { success: false, error: "Pantry ID tidak boleh kosong." };
+
+    const res = await fetch(`https://getpantry.cloud/apiv1/pantry/${cleanId}`);
+    if (!res.ok) {
+      return { success: false, error: "Pantry ID tidak valid atau tidak ditemukan." };
+    }
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
+  }
+};
+
+export const syncPantry = async (
+  email: string,
+  data: AppData,
+  cfg: PantryConfig
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const cleanId = cfg.pantryId.trim();
+    const basket = `user_${email.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "_")}`;
+
+    const res = await fetch(`https://getpantry.cloud/apiv1/pantry/${cleanId}/basket/${basket}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      return { success: false, error: "Gagal menyimpan ke Pantry Cloud." };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
+  }
+};
+
+export const fetchPantry = async (
+  email: string,
+  cfg: PantryConfig
+): Promise<{ success: boolean; data?: AppData; error?: string }> => {
+  try {
+    const cleanId = cfg.pantryId.trim();
+    const basket = `user_${email.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "_")}`;
+
+    const res = await fetch(`https://getpantry.cloud/apiv1/pantry/${cleanId}/basket/${basket}`);
+    if (!res.ok) {
+      if (res.status === 404) {
+        return { success: false, error: "Belum ada data di Pantry untuk email ini." };
+      }
+      return { success: false, error: "Gagal mengambil data dari Pantry." };
+    }
+
+    const json = await res.json();
+    return { success: true, data: json as AppData };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
+  }
+};
+
+// ==================== UNIFIED CLOUD DISPATCHER ====================
+export const saveCloudSettings = (settings: CloudSettings) => {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+};
+
+export const syncAppDataToCloud = async (
+  email: string,
+  data: AppData
+): Promise<{ success: boolean; error?: string }> => {
+  const cfg = getCloudSettings();
+
+  if (cfg.provider === "upstash") {
+    if (!cfg.upstash?.url || !cfg.upstash?.token) {
+      return { success: false, error: "Kredensial Upstash belum lengkap." };
+    }
+    return syncUpstash(email, data, cfg.upstash);
+  }
+
+  if (cfg.provider === "pantry") {
+    if (!cfg.pantry?.pantryId) {
+      return { success: false, error: "Pantry ID belum diisi." };
+    }
+    return syncPantry(email, data, cfg.pantry);
+  }
+
+  if (cfg.provider === "supabase") {
+    return syncSupabase(email, data);
+  }
+
+  return { success: false, error: "Penyedia cloud belum dipilih." };
+};
+
+export const fetchAppDataFromCloud = async (
+  email: string
+): Promise<{ success: boolean; data?: AppData; error?: string }> => {
+  const cfg = getCloudSettings();
+
+  if (cfg.provider === "upstash") {
+    if (!cfg.upstash?.url || !cfg.upstash?.token) {
+      return { success: false, error: "Kredensial Upstash belum lengkap." };
+    }
+    return fetchUpstash(email, cfg.upstash);
+  }
+
+  if (cfg.provider === "pantry") {
+    if (!cfg.pantry?.pantryId) {
+      return { success: false, error: "Pantry ID belum diisi." };
+    }
+    return fetchPantry(email, cfg.pantry);
+  }
+
+  if (cfg.provider === "supabase") {
+    return fetchSupabase(email);
+  }
+
+  return { success: false, error: "Penyedia cloud belum dipilih." };
+};

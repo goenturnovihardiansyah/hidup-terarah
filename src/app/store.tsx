@@ -4,13 +4,18 @@ import { emptyData, demoData } from "./seed";
 import { uid, ymd, fmtTime, startOfDay, addDays } from "./dates";
 import { detectDrift, effectiveStatus, habitsForToday, isDone, reminderText } from "./logic";
 import {
-  isCloudConfigured,
-  getSupabaseConfig,
+  isAnyCloudConfigured,
+  getCloudSettings,
+  saveCloudSettings,
+  syncAppDataToCloud,
+  fetchAppDataFromCloud,
+  testUpstashConnection,
+  testPantryConnection,
+  type CloudSettings,
+} from "./cloud-db";
+import {
   saveSupabaseConfig,
   clearSupabaseConfig,
-  syncDataToCloud,
-  fetchDataFromCloud,
-  type SupabaseConfig,
 } from "./supabase";
 
 const KEY = "hidup-terarah:v1";
@@ -50,12 +55,12 @@ const useStoreValue = () => {
   const [now, setNow] = useState(new Date());
 
   // Cloud Sync State
+  const [cloudSettings, setCloudSettingsState] = useState<CloudSettings>(() => getCloudSettings());
   const [cloudStatus, setCloudStatus] = useState<CloudSyncStatus>(() =>
-    isCloudConfigured() ? "idle" : "unconfigured"
+    isAnyCloudConfigured() ? "idle" : "unconfigured"
   );
   const [cloudError, setCloudError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
-  const [cloudConfig, setCloudConfigState] = useState<SupabaseConfig | null>(() => getSupabaseConfig());
 
   const dataRef = useRef(data);
   dataRef.current = data;
@@ -87,8 +92,8 @@ const useStoreValue = () => {
 
   // ---- Sinkronisasi Cloud Otomatis (Debounced) ----
   useEffect(() => {
-    if (!data.user?.email || !isCloudConfigured()) {
-      if (!isCloudConfigured()) setCloudStatus("unconfigured");
+    if (!data.user?.email || !isAnyCloudConfigured()) {
+      if (!isAnyCloudConfigured()) setCloudStatus("unconfigured");
       return;
     }
 
@@ -99,7 +104,7 @@ const useStoreValue = () => {
     syncTimeoutRef.current = setTimeout(async () => {
       setCloudStatus("syncing");
       setCloudError(null);
-      const res = await syncDataToCloud(data.user!.email, data);
+      const res = await syncAppDataToCloud(data.user!.email, data);
       if (res.success) {
         setCloudStatus("synced");
         setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
@@ -116,8 +121,8 @@ const useStoreValue = () => {
 
   // Tarik data cloud awal jika user sudah ada dan cloud aktif
   useEffect(() => {
-    if (data.user?.email && isCloudConfigured()) {
-      fetchDataFromCloud(data.user.email).then((res) => {
+    if (data.user?.email && isAnyCloudConfigured()) {
+      fetchAppDataFromCloud(data.user.email).then((res) => {
         if (res.success && res.data) {
           setData((curr) => ({ ...curr, ...res.data }));
           setCloudStatus("synced");
@@ -221,14 +226,14 @@ const useStoreValue = () => {
       toast("Email pengguna belum diatur untuk sinkronisasi.");
       return false;
     }
-    if (!isCloudConfigured()) {
+    if (!isAnyCloudConfigured()) {
       toast("Database Cloud belum dikonfigurasi.");
       return false;
     }
 
     setCloudStatus("syncing");
     setCloudError(null);
-    const res = await syncDataToCloud(cur.user.email, cur);
+    const res = await syncAppDataToCloud(cur.user.email, cur);
     if (res.success) {
       setCloudStatus("synced");
       setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
@@ -248,13 +253,13 @@ const useStoreValue = () => {
       toast("Email pengguna belum ada.");
       return false;
     }
-    if (!isCloudConfigured()) {
+    if (!isAnyCloudConfigured()) {
       toast("Database Cloud belum dikonfigurasi.");
       return false;
     }
 
     setCloudStatus("syncing");
-    const res = await fetchDataFromCloud(cur.user.email);
+    const res = await fetchAppDataFromCloud(cur.user.email);
     if (res.success && res.data) {
       setData((c) => ({ ...c, ...res.data }));
       setCloudStatus("synced");
@@ -269,18 +274,84 @@ const useStoreValue = () => {
     }
   }, [toast]);
 
-  const updateCloudConfig = useCallback(async (url: string, anonKey: string) => {
+  const updateUpstashConfig = useCallback(async (url: string, token: string) => {
+    setCloudStatus("syncing");
+    const test = await testUpstashConnection(url, token);
+    if (!test.success) {
+      setCloudStatus("error");
+      setCloudError(test.error || "Koneksi Upstash gagal");
+      toast(`Koneksi Upstash gagal: ${test.error}`);
+      return test;
+    }
+
+    const newCfg: CloudSettings = {
+      provider: "upstash",
+      upstash: { url: url.trim().replace(/\/+$/, ""), token: token.trim() },
+    };
+    saveCloudSettings(newCfg);
+    setCloudSettingsState(newCfg);
+    setCloudStatus("idle");
+    setCloudError(null);
+    toast("Upstash Redis berhasil terhubung! (Anti-pause)");
+
+    const cur = dataRef.current;
+    if (cur.user?.email) {
+      syncAppDataToCloud(cur.user.email, cur).then((sr) => {
+        if (sr.success) {
+          setCloudStatus("synced");
+          setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
+        }
+      });
+    }
+    return { success: true };
+  }, [toast]);
+
+  const updatePantryConfig = useCallback(async (pantryId: string) => {
+    setCloudStatus("syncing");
+    const test = await testPantryConnection(pantryId);
+    if (!test.success) {
+      setCloudStatus("error");
+      setCloudError(test.error || "Pantry ID tidak valid");
+      toast(`Pantry gagal: ${test.error}`);
+      return test;
+    }
+
+    const newCfg: CloudSettings = {
+      provider: "pantry",
+      pantry: { pantryId: pantryId.trim() },
+    };
+    saveCloudSettings(newCfg);
+    setCloudSettingsState(newCfg);
+    setCloudStatus("idle");
+    setCloudError(null);
+    toast("Pantry Cloud berhasil terhubung!");
+
+    const cur = dataRef.current;
+    if (cur.user?.email) {
+      syncAppDataToCloud(cur.user.email, cur).then((sr) => {
+        if (sr.success) {
+          setCloudStatus("synced");
+          setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
+        }
+      });
+    }
+    return { success: true };
+  }, [toast]);
+
+  const updateSupabaseConfig = useCallback(async (url: string, anonKey: string) => {
     setCloudStatus("syncing");
     const res = await saveSupabaseConfig(url, anonKey);
     if (res.success) {
-      setCloudConfigState(getSupabaseConfig());
+      const newCfg: CloudSettings = { provider: "supabase" };
+      saveCloudSettings(newCfg);
+      setCloudSettingsState(newCfg);
       setCloudStatus("idle");
       setCloudError(null);
-      toast("Koneksi Database Cloud tersimpan!");
-      // Langsung lakukan sync pertama
+      toast("Supabase berhasil terhubung!");
+
       const cur = dataRef.current;
       if (cur.user?.email) {
-        syncDataToCloud(cur.user.email, cur).then((sr) => {
+        syncAppDataToCloud(cur.user.email, cur).then((sr) => {
           if (sr.success) {
             setCloudStatus("synced");
             setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
@@ -296,11 +367,12 @@ const useStoreValue = () => {
   }, [toast]);
 
   const disconnectCloud = useCallback(() => {
+    localStorage.removeItem("hidup-terarah:cloud-settings");
     clearSupabaseConfig();
-    setCloudConfigState(null);
+    setCloudSettingsState({ provider: "upstash" });
     setCloudStatus("unconfigured");
     setCloudError(null);
-    toast("Koneksi Cloud diputus. Data tetap tersimpan aman di perangkat lokal.");
+    toast("Koneksi Cloud diputus. Data tetap tersimpan aman di browser.");
   }, [toast]);
 
   // ---- Aksi Data App ----
@@ -315,10 +387,9 @@ const useStoreValue = () => {
       logout: () => setData((d) => ({ ...d, lastUser: d.user, user: null })),
       login: async (email: string) => {
         const cleanEmail = email.trim().toLowerCase();
-        // Jika ada database cloud, utamakan tarik dari cloud
-        if (isCloudConfigured()) {
+        if (isAnyCloudConfigured()) {
           setCloudStatus("syncing");
-          const cloudRes = await fetchDataFromCloud(cleanEmail);
+          const cloudRes = await fetchAppDataFromCloud(cleanEmail);
           if (cloudRes.success && cloudRes.data) {
             setData((curr) => ({ ...curr, ...cloudRes.data, user: cloudRes.data!.user || { id: uid(), name: cleanEmail.split("@")[0], email: cleanEmail, created_at: new Date().toISOString() } }));
             setCloudStatus("synced");
@@ -328,7 +399,6 @@ const useStoreValue = () => {
           }
         }
 
-        // Fallback lokal
         setData((d) =>
           d.lastUser && d.lastUser.email.toLowerCase() === cleanEmail
             ? { ...d, user: d.lastUser }
@@ -491,13 +561,15 @@ const useStoreValue = () => {
     toasts,
     toast,
     dismissToast,
+    cloudSettings,
     cloudStatus,
     cloudError,
     lastSyncedAt,
-    cloudConfig,
     syncNow,
     pullFromCloud,
-    updateCloudConfig,
+    updateUpstashConfig,
+    updatePantryConfig,
+    updateSupabaseConfig,
     disconnectCloud,
     ...actions,
   };
