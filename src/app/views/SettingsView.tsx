@@ -5,6 +5,7 @@ import { useStore } from "../store";
 import { PageHead, Panel, Segmented, ConfirmButton } from "../ui";
 import { parseRupiah } from "../forms";
 import { PwaSettingsSection } from "../pwa";
+import { CloudDatabaseSection } from "../cloud-settings";
 import type { Theme, Tone } from "../types";
 
 export const SettingsView = () => {
@@ -90,6 +91,10 @@ export const SettingsView = () => {
           </form>
         </Panel>
 
+        <Panel title="Database Cloud (Buka di Mana Saja)" sub="Sinkronisasikan tujuan, kebiasaan, dan jadwal secara otomatis antar HP & Laptop via Supabase.">
+          <CloudDatabaseSection />
+        </Panel>
+
         <Panel title="Aplikasi Handphone (PWA)" sub="Jadikan seperti aplikasi Android atau iOS yang tampil langsung di home screen.">
           <PwaSettingsSection />
         </Panel>
@@ -100,7 +105,7 @@ export const SettingsView = () => {
             <button className="btn btn-ghost" onClick={s.logout}><LogOut size={15} /> Keluar</button>
             <ConfirmButton className="btn btn-ghost text-coral" confirmText="Klik lagi untuk hapus permanen" onConfirm={s.wipe}><Trash2 size={15} /> Hapus semua data</ConfirmButton>
           </div>
-          <p className="mt-3 text-xs text-mute">Prototipe ini menyimpan data di browser perangkat ini (localStorage). Versi produksi memakai database dan login sesuai PRD.</p>
+          <p className="mt-3 text-xs text-mute">Data disimpan secara offline-first di browser ini dan otomatis disinkronkan ke Database Cloud jika sudah dihubungkan.</p>
         </Panel>
       </div>
     </div>

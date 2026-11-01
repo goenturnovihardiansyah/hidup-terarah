@@ -45,7 +45,7 @@ export const Auth = () => {
             </>)}
             <button className="btn btn-primary w-full py-3">{mode === "daftar" ? "Buat akun" : "Masuk"} <ArrowRight size={16} /></button>
           </form>
-          <p className="mt-5 flex items-start gap-2 text-xs text-mute"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-mint" /> Versi prototipe: data tersimpan di perangkat ini saja (browser), tidak dikirim ke server mana pun.</p>
+          <p className="mt-5 flex items-start gap-2 text-xs text-mute"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-mint" /> Data tersimpan aman secara offline-first dan otomatis tersinkronisasi antar perangkat saat database cloud dihubungkan.</p>
         </div>
       </div>
     </div>

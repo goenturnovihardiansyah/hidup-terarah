@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { House, Target, Repeat, CalendarDays, Wallet, BellRing, ChartColumn, Settings, Search, Bell, Plus, Ellipsis, X, NotebookPen } from "lucide-react";
+import { House, Target, Repeat, CalendarDays, Wallet, BellRing, ChartColumn, Settings, Search, Bell, Plus, Ellipsis, X, NotebookPen, Cloud, CloudCheck, RefreshCw } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useStore, type View } from "./store";
@@ -124,7 +124,7 @@ export const QuickAddMenu = ({ children, align = "end" }: { children: ReactNode;
 };
 
 const Topbar = () => {
-  const { data, setView } = useStore();
+  const { data, setView, cloudStatus, lastSyncedAt } = useStore();
   const initials = (data.user?.name || "?").split(" ").map((s) => s[0]).join("").slice(0, 2).toUpperCase();
   return (
     <div className="sticky top-0 z-30 -mx-4 mb-4 flex items-center gap-2.5 glass-bg px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:pt-0 lg:backdrop-blur-0">
@@ -132,6 +132,20 @@ const Topbar = () => {
       <SearchBox />
       <div className="ml-auto flex items-center gap-2">
         <QuickAddMenu><button className="btn btn-primary hidden h-11 rounded-full sm:inline-flex"><Plus size={17} /> Catat</button></QuickAddMenu>
+        <button
+          onClick={() => setView("pengaturan")}
+          aria-label="Status Cloud"
+          title={cloudStatus === "synced" ? `Cloud aktif: sinkron ${lastSyncedAt || "baru saja"}` : cloudStatus === "syncing" ? "Sedang menyinkronkan data..." : "Database Cloud: Klik untuk hubungkan"}
+          className="relative grid h-11 w-11 place-items-center rounded-full border border-line bg-surface text-ink2 transition hover:text-brand"
+        >
+          {cloudStatus === "syncing" ? (
+            <RefreshCw size={17} className="animate-spin text-brand" />
+          ) : cloudStatus === "synced" ? (
+            <CloudCheck size={18} className="text-mint" />
+          ) : (
+            <Cloud size={18} className="text-mute opacity-60" />
+          )}
+        </button>
         <Bellbox />
         <button onClick={() => setView("pengaturan")} aria-label="Profil" className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br from-lilac-bg to-rose-bg font-bold text-ink ring-2 ring-surface">{initials}</button>
       </div>

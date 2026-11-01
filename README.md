@@ -34,9 +34,15 @@
    - Grafik konsistensi 8 pekan terakhir (SVG chart).
    - Jurnal refleksi mingguan: apa yang berhasil dan apa yang ingin diperbaiki.
 
-7. **🔒 Local-First & Privasi Terjaga**
-   - Data tersimpan lokal di browser (`localStorage`), tanpa mengirim data pribadi ke server mana pun.
-   - Dilengkapi fitur **Ekspor Data JSON** di menu Pengaturan.
+7. **☁️ Database Cloud Gratis (Supabase) & Offline-First**
+   - Mendukung integrasi dengan **Supabase** (PostgreSQL gratis).
+   - Data tersimpan lokal di browser (`localStorage`) secara instan dan otomatis disinkronkan ke Cloud di background.
+   - Buka dan teruskan produktivitas dari mana saja: HP, Laptop, atau Tablet tanpa kehilangan data.
+
+8. **📱 Progressive Web App (PWA) Berfitur Penuh**
+   - Dapat diinstal langsung ke Layar Utama (*Home Screen*) Android dan iOS layaknya aplikasi native.
+   - Ikon aplikasi kustom, splash screen, dan mode *standalone* (tanpa address bar browser).
+
 
 ---
 
