@@ -17,6 +17,7 @@ export const NAV: { v: View; l: string; icon: typeof House; tint: string }[] = [
   { v: "jadwal", l: "Jadwal", icon: CalendarDays, tint: "var(--peach)" },
   { v: "keuangan", l: "Keuangan", icon: Wallet, tint: "var(--butter)" },
   { v: "kebugaran", l: "Kebugaran", icon: Activity, tint: "var(--emerald)" },
+  { v: "jurnal", l: "Jurnal", icon: NotebookPen, tint: "var(--violet)" },
   { v: "pengingat", l: "Pengingat", icon: BellRing, tint: "var(--coral)" },
   { v: "evaluasi", l: "Evaluasi", icon: ChartColumn, tint: "var(--sky)" },
   { v: "pengaturan", l: "Pengaturan", icon: Settings, tint: "var(--muted)" },
@@ -28,36 +29,36 @@ const Sidebar = () => {
   const refQuote = useMemo(() => getDailyReflectionQuote(now), [now]);
   return (
     <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-[232px] shrink-0 flex-col rounded-[28px] border border-line glass-surface p-4 backdrop-blur lg:flex" style={{ boxShadow: "var(--shadow)" }}>
-      <div className="mb-6 flex items-center gap-2.5 px-2 pt-1">
+      <div className="mb-4 flex items-center gap-2.5 px-2 pt-1">
         <Logo size={38} />
         <div className="leading-tight"><p className="font-display text-[17px] font-semibold text-ink">Hidup Terarah</p><p className="text-[11px] text-mute">teman menata hidup</p></div>
       </div>
-      <nav className="flex flex-col gap-1" aria-label="Navigasi utama">
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto pr-1" aria-label="Navigasi utama">
         {NAV.map((n) => {
           const on = view === n.v;
           return (
             <button key={n.v} onClick={() => setView(n.v)} aria-current={on ? "page" : undefined}
-              className={cn("group flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm font-semibold transition", on ? "bg-brandsoft text-ink" : "text-ink2 hover:bg-surface2")}>
-              <n.icon size={19} strokeWidth={2.2} style={{ color: on ? "var(--accent)" : n.tint }} />
+              className={cn("group flex items-center gap-3 rounded-[14px] px-3 py-2 text-sm font-semibold transition", on ? "bg-brandsoft text-ink" : "text-ink2 hover:bg-surface2")}>
+              <n.icon size={18} strokeWidth={2.2} style={{ color: on ? "var(--accent)" : n.tint }} />
               <span className="flex-1 text-left">{n.l}</span>
               {n.v === "pengingat" && unread > 0 && <span className="rounded-full bg-coral px-1.5 text-[10px] font-bold text-white">{unread}</span>}
             </button>
           );
         })}
       </nav>
-      <div className="mt-auto rounded-[22px] border border-line bg-gradient-to-b from-peach-bg to-rose-bg p-4 shadow-sm">
+      <div className="mt-3 rounded-[22px] border border-line bg-gradient-to-b from-peach-bg to-rose-bg p-3.5 shadow-sm">
         <div className="-mx-1 mb-1"><ArchArt /></div>
         <span className="inline-block rounded-full bg-surface/75 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-coral">
           Refleksi Hari Ini
         </span>
-        <p className="mt-1.5 font-display text-[13px] font-semibold leading-snug text-ink line-clamp-3">
+        <p className="mt-1.5 font-display text-[13px] font-semibold leading-snug text-ink line-clamp-2">
           “{refQuote.quote}”
         </p>
         <p className="mt-1 text-[11px] font-medium text-mute truncate">
           — {refQuote.author}
         </p>
-        <button onClick={() => setView("evaluasi")} className="btn mt-3 w-full bg-coral text-white py-2 text-xs font-semibold">
-          <NotebookPen size={14} /> Tulis refleksi
+        <button onClick={() => setView("jurnal")} className="btn mt-2.5 w-full bg-coral text-white py-2 text-xs font-semibold">
+          <NotebookPen size={14} /> Tulis jurnal harian
         </button>
       </div>
     </aside>
@@ -73,6 +74,7 @@ const SearchBox = () => {
     data.goals.filter((g) => g.title.toLowerCase().includes(s)).forEach((g) => r.push({ k: g.id, label: g.title, meta: "Tujuan", go: () => setView("tujuan") }));
     (data.projects || []).filter((p) => p.name.toLowerCase().includes(s)).forEach((p) => r.push({ k: p.id, label: p.name, meta: "Proyek", go: () => setView("proyek") }));
     (data.projectTasks || []).filter((t) => t.title.toLowerCase().includes(s)).forEach((t) => r.push({ k: t.id, label: t.title, meta: "Task Proyek", go: () => setView("proyek") }));
+    (data.journals || []).filter((j) => (j.title + " " + j.gratitude + " " + j.content).toLowerCase().includes(s)).forEach((j) => r.push({ k: j.id, label: j.title, meta: `Jurnal · ${j.date}`, go: () => setView("jurnal") }));
     data.habits.filter((h) => h.name.toLowerCase().includes(s)).forEach((h) => r.push({ k: h.id, label: h.name, meta: "Kebiasaan", go: () => setView("kebiasaan") }));
     data.schedules.filter((x) => x.title.toLowerCase().includes(s)).forEach((x) => r.push({ k: x.id, label: x.title, meta: `Agenda · ${fmtDateShort(new Date(x.start_at))}`, go: () => { setFocusDate(x.start_at.slice(0, 10)); setView("jadwal"); } }));
     data.transactions.filter((t) => t.note.toLowerCase().includes(s)).slice(-5).forEach((t) => r.push({ k: t.id, label: t.note, meta: `${t.type === "pemasukan" ? "+" : "-"}${rupiah(t.amount)}`, go: () => setView("keuangan") }));
@@ -126,7 +128,7 @@ const Bellbox = () => {
 };
 
 export const QuickAddMenu = ({ children, align = "end" }: { children: ReactNode; align?: "start" | "end" | "center" }) => {
-  const { setQuick } = useStore();
+  const { setQuick, setView } = useStore();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
@@ -134,6 +136,7 @@ export const QuickAddMenu = ({ children, align = "end" }: { children: ReactNode;
         {([["agenda", "🗓️", "Agenda"], ["kebiasaan", "🌱", "Kebiasaan"], ["transaksi", "💸", "Catat uang"], ["tujuan", "🎯", "Tujuan"]] as const).map(([k, e, l]) => (
           <DropdownMenuItem key={k} onSelect={() => setQuick(k)} className="cursor-pointer gap-3 rounded-[12px] px-3 py-2.5 text-sm font-semibold text-ink focus:bg-surface2"><span className="text-base">{e}</span>{l}</DropdownMenuItem>
         ))}
+        <DropdownMenuItem onSelect={() => setView("jurnal")} className="cursor-pointer gap-3 rounded-[12px] px-3 py-2.5 text-sm font-semibold text-ink focus:bg-surface2"><span className="text-base">📔</span>Jurnal harian</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

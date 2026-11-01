@@ -3,7 +3,7 @@ import type {
   AppData, Goal, GoalStep, Habit, Schedule, Transaction, 
   Reflection, Preferences, Category, WorkoutLog, CalorieLog, 
   WeightLog, FitnessProfile, StreakMilestone, Project, ProjectTask,
-  ProjectStatus, TaskPriority
+  ProjectStatus, TaskPriority, DailyJournal, JournalMood
 } from "./types";
 import { emptyData, demoData } from "./seed";
 import { uid, ymd, fmtTime, startOfDay, addDays } from "./dates";
@@ -221,6 +221,25 @@ export const sanitizeData = (d: AppData): AppData => {
       };
     });
 
+  const seenJournals = new Set<string>();
+  const journals = (d.journals || [])
+    .filter((j) => !j?.id || !deletedSet.has(j.id))
+    .map((j) => {
+      let id = j?.id;
+      if (!id || typeof id !== "string" || id === "undefined" || seenJournals.has(id)) {
+        id = uid();
+      }
+      seenJournals.add(id);
+      return {
+        ...j,
+        id,
+        mood: j.mood || "bersyukur",
+        energy_level: typeof j.energy_level === "number" ? j.energy_level : 4,
+        tags: Array.isArray(j.tags) ? j.tags : [],
+        color: j.color || "lilac",
+      };
+    });
+
   return {
     ...d,
     habits,
@@ -235,6 +254,7 @@ export const sanitizeData = (d: AppData): AppData => {
     fitnessProfile,
     projects,
     projectTasks,
+    journals,
     deleted_ids: Array.from(deletedSet).slice(-500),
   };
 };
@@ -309,6 +329,7 @@ export const mergeAppData = (local: AppData, cloud: AppData): AppData => {
     } as FitnessProfile,
     projects: mergeList(cloud.projects || [], local.projects || []),
     projectTasks: mergeList(cloud.projectTasks || [], local.projectTasks || []),
+    journals: mergeList(cloud.journals || [], local.journals || []),
     deleted_ids: deletedIds,
     updated_at: new Date().toISOString(),
   });
@@ -331,7 +352,7 @@ const save = (d: AppData) => {
   }
 };
 
-export type View = "beranda" | "tujuan" | "proyek" | "kebiasaan" | "jadwal" | "keuangan" | "kebugaran" | "pengingat" | "evaluasi" | "pengaturan";
+export type View = "beranda" | "tujuan" | "proyek" | "kebiasaan" | "jadwal" | "keuangan" | "kebugaran" | "jurnal" | "pengingat" | "evaluasi" | "pengaturan";
 export type QuickKind = "agenda" | "kebiasaan" | "transaksi" | "tujuan" | null;
 export type CloudSyncStatus = "unconfigured" | "idle" | "syncing" | "synced" | "error";
 
@@ -1291,6 +1312,74 @@ const useStoreValue = () => {
             ? { ...d, reflections: d.reflections.map((x) => (x.week_start === r.week_start ? { ...x, ...r } : x)) }
             : { ...d, reflections: [{ ...r, id: uid(), created_at: new Date().toISOString() }, ...d.reflections] };
         }),
+
+      // ---- Aksi Journaling & Evaluasi Harian ----
+      saveJournal: (
+        j: Partial<DailyJournal> & { date: string; title?: string; mood?: JournalMood }
+      ) => {
+        const nowIso = new Date().toISOString();
+        update((d) => {
+          const list = d.journals || [];
+          const existing = j.id
+            ? list.find((x) => x.id === j.id)
+            : list.find((x) => x.date === j.date);
+
+          if (existing) {
+            const updated: DailyJournal = {
+              ...existing,
+              ...j,
+              id: existing.id,
+              updated_at: nowIso,
+            };
+            return {
+              ...d,
+              journals: list.map((x) => (x.id === existing.id ? updated : x)),
+            };
+          }
+
+          const created: DailyJournal = {
+            id: uid(),
+            date: j.date,
+            mood: j.mood || "bersyukur",
+            energy_level: typeof j.energy_level === "number" ? j.energy_level : 4,
+            title: (j.title || "").trim() || `Jurnal Harian · ${j.date}`,
+            gratitude: j.gratitude || "",
+            wins: j.wins || "",
+            challenges: j.challenges || "",
+            tomorrow_focus: j.tomorrow_focus || "",
+            content: j.content || "",
+            tags: Array.isArray(j.tags) ? j.tags : ["Refleksi Harian"],
+            color: j.color || "lilac",
+            created_at: nowIso,
+            updated_at: nowIso,
+          };
+
+          return {
+            ...d,
+            journals: [created, ...list].sort((a, b) => b.date.localeCompare(a.date)),
+          };
+        });
+        toast("Jurnal & evaluasi harian tersimpan! 📔✨");
+      },
+
+      deleteJournal: (id: string) => {
+        if (!id || id === "undefined") return;
+        const target = (dataRef.current.journals || []).find((x) => x.id === id);
+        update((d) => ({
+          ...d,
+          deleted_ids: [...(d.deleted_ids || []), id],
+          journals: (d.journals || []).filter((x) => x.id !== id),
+        }));
+        if (target) {
+          toast("Catatan jurnal dihapus.", () =>
+            update((d) => ({
+              ...d,
+              deleted_ids: (d.deleted_ids || []).filter((x) => x !== id),
+              journals: [target, ...(d.journals || [])].sort((a, b) => b.date.localeCompare(a.date)),
+            }))
+          );
+        }
+      },
     }),
     [update, toast]
   );

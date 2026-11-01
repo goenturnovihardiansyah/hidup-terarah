@@ -111,6 +111,7 @@ function healAndMergeData(existing: AnyObj | null, incoming: AnyObj): AnyObj {
     fitnessProfile: { ...(existing.fitnessProfile || {}), ...(incoming.fitnessProfile || {}) },
     projects: mergeById(existing.projects, incoming.projects, deletedSet),
     projectTasks: mergeById(existing.projectTasks, incoming.projectTasks, deletedSet),
+    journals: mergeById(existing.journals, incoming.journals, deletedSet),
     deleted_ids: deletedIds,
     updated_at: new Date().toISOString(),
   };

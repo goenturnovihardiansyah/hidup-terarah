@@ -35,6 +35,7 @@ export const emptyData = (): AppData => ({
   },
   projects: [],
   projectTasks: [],
+  journals: [],
   deleted_ids: [],
 });
 

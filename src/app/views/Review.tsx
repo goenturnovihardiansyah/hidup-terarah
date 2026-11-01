@@ -41,7 +41,20 @@ export const Review = () => {
 
   return (
     <div>
-      <PageHead eyebrow="Progres & evaluasi" title="Evaluasi mingguan" text="Lihat hasil usahamu, lalu putuskan satu hal untuk diperbaiki." />
+      <PageHead
+        eyebrow="Progres & evaluasi"
+        title="Evaluasi mingguan"
+        text="Lihat hasil usahamu, lalu putuskan satu hal untuk diperbaiki."
+        action={
+          <button
+            type="button"
+            onClick={() => s.setView("jurnal")}
+            className="btn btn-primary text-xs font-bold"
+          >
+            📔 Tulis Jurnal Harian
+          </button>
+        }
+      />
       <div className="mb-4 flex items-center gap-2">
         <button aria-label="Minggu sebelumnya" onClick={() => setWeek(addDays(week, -7))} className="grid h-9 w-9 place-items-center rounded-full border border-line bg-surface"><ChevronLeft size={17} /></button>
         <p className="min-w-[170px] text-center font-extrabold text-ink">{fmtDateShort(week)} – {fmtDateShort(addDays(week, 6))}{isCur && <span className="ml-1 text-xs font-semibold text-mute">(minggu ini)</span>}</p>
@@ -84,11 +97,13 @@ export const Review = () => {
           <div className="mt-3 border-t border-line pt-3">
             <p className="mb-2 text-xs font-semibold text-mute">Per hari, minggu terpilih</p>
             <div className="grid grid-cols-7 gap-2">
-              {days.map((d) => { const v = d > startOfDay(now) ? null : dailyHabitRate(data, d); return (
-                <div key={ymd(d)} className="text-center">
-                  <div className="mx-auto flex h-16 w-full max-w-[38px] items-end overflow-hidden rounded-[10px] bg-surface2"><div className="w-full rounded-[10px] bg-lilac transition-all" style={{ height: `${v ?? 0}%`, opacity: v === null ? 0 : 0.35 + (v / 100) * 0.65 }} /></div>
-                  <p className="mt-1 text-[10px] font-bold text-mute">{HARI_PENDEK[d.getDay()]}</p>
-                </div>); })}
+              {days.map((d) => {
+                const v = d > startOfDay(now) ? null : dailyHabitRate(data, d); return (
+                  <div key={ymd(d)} className="text-center">
+                    <div className="mx-auto flex h-16 w-full max-w-[38px] items-end overflow-hidden rounded-[10px] bg-surface2"><div className="w-full rounded-[10px] bg-lilac transition-all" style={{ height: `${v ?? 0}%`, opacity: v === null ? 0 : 0.35 + (v / 100) * 0.65 }} /></div>
+                    <p className="mt-1 text-[10px] font-bold text-mute">{HARI_PENDEK[d.getDay()]}</p>
+                  </div>);
+              })}
             </div>
           </div>
         </Panel>

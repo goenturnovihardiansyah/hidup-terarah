@@ -131,6 +131,26 @@ export interface ProjectTask {
   completed_at?: string;
 }
 
+// ---- Journaling & Evaluasi Harian ----
+export type JournalMood = "bersyukur" | "tenang" | "biasa" | "lelah" | "berat";
+
+export interface DailyJournal {
+  id: ID;
+  date: string; // YYYY-MM-DD
+  mood: JournalMood;
+  energy_level: number; // 1 - 5
+  title: string;
+  gratitude: string; // Hal yang disyukuri hari ini
+  wins: string; // Evaluasi: apa yang berjalan baik hari ini
+  challenges: string; // Evaluasi: apa yang perlu diperbaiki / kendala hari ini
+  tomorrow_focus: string; // Fokus / prioritas utama besok
+  content: string; // Catatan bebas / cerita hari ini
+  tags: string[];
+  color: Tint;
+  created_at: string;
+  updated_at?: string;
+}
+
 export type Tint =
   | "lilac"
   | "rose"
@@ -166,6 +186,7 @@ export interface AppData {
   fitnessProfile?: FitnessProfile;
   projects?: Project[];
   projectTasks?: ProjectTask[];
+  journals?: DailyJournal[];
   deleted_ids?: string[];
   updated_at?: string;
 }

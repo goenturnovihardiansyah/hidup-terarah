@@ -8,6 +8,7 @@ import { Habits } from "./app/views/Habits";
 import { Schedule } from "./app/views/Schedule";
 import { Finance } from "./app/views/Finance";
 import { Fitness } from "./app/views/Fitness";
+import { Journal } from "./app/views/Journal";
 import { Reminders } from "./app/views/Reminders";
 import { Review } from "./app/views/Review";
 import { SettingsView } from "./app/views/SettingsView";
@@ -27,6 +28,7 @@ const Views = () => {
     jadwal: Schedule,
     keuangan: Finance,
     kebugaran: Fitness,
+    jurnal: Journal,
     pengingat: Reminders,
     evaluasi: Review,
     pengaturan: SettingsView,
