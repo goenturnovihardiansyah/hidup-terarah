@@ -17,6 +17,11 @@ import {
   saveSupabaseConfig,
   clearSupabaseConfig,
 } from "./supabase";
+import {
+  testTursoConnection,
+  saveTursoConfig,
+  clearTursoConfig,
+} from "./turso";
 
 const KEY = "hidup-terarah:v1";
 const load = (): AppData => {
@@ -274,6 +279,38 @@ const useStoreValue = () => {
     }
   }, [toast]);
 
+  const updateTursoConfig = useCallback(async (url: string, authToken: string) => {
+    setCloudStatus("syncing");
+    const test = await testTursoConnection(url, authToken);
+    if (!test.success) {
+      setCloudStatus("error");
+      setCloudError(test.error || "Koneksi Turso gagal");
+      toast(`Koneksi Turso gagal: ${test.error}`);
+      return test;
+    }
+
+    const res = await saveTursoConfig(url, authToken);
+    if (res.success) {
+      const newCfg: CloudSettings = { provider: "turso" };
+      saveCloudSettings(newCfg);
+      setCloudSettingsState(newCfg);
+      setCloudStatus("idle");
+      setCloudError(null);
+      toast("Turso SQLite berhasil terhubung! (Anti-pause, 100% Gratis)");
+
+      const cur = dataRef.current;
+      if (cur.user?.email) {
+        syncAppDataToCloud(cur.user.email, cur).then((sr) => {
+          if (sr.success) {
+            setCloudStatus("synced");
+            setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
+          }
+        });
+      }
+    }
+    return res;
+  }, [toast]);
+
   const updateUpstashConfig = useCallback(async (url: string, token: string) => {
     setCloudStatus("syncing");
     const test = await testUpstashConnection(url, token);
@@ -369,7 +406,8 @@ const useStoreValue = () => {
   const disconnectCloud = useCallback(() => {
     localStorage.removeItem("hidup-terarah:cloud-settings");
     clearSupabaseConfig();
-    setCloudSettingsState({ provider: "upstash" });
+    clearTursoConfig();
+    setCloudSettingsState({ provider: "turso" });
     setCloudStatus("unconfigured");
     setCloudError(null);
     toast("Koneksi Cloud diputus. Data tetap tersimpan aman di browser.");
@@ -567,6 +605,7 @@ const useStoreValue = () => {
     lastSyncedAt,
     syncNow,
     pullFromCloud,
+    updateTursoConfig,
     updateUpstashConfig,
     updatePantryConfig,
     updateSupabaseConfig,

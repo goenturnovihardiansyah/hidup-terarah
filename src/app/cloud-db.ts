@@ -4,8 +4,13 @@ import {
   syncDataToCloud as syncSupabase,
   fetchDataFromCloud as fetchSupabase,
 } from "./supabase";
+import {
+  isTursoConfigured,
+  syncTursoData,
+  fetchTursoData,
+} from "./turso";
 
-export type CloudProvider = "vercel_kv" | "upstash" | "pantry" | "supabase";
+export type CloudProvider = "turso" | "vercel_kv" | "upstash" | "pantry" | "supabase";
 
 export interface UpstashConfig {
   url: string;
@@ -35,17 +40,25 @@ export const getCloudSettings = (): CloudSettings => {
     /* abaikan */
   }
 
+  // Jika Turso sudah terkonfigurasi (lokal atau env)
+  if (isTursoConfigured()) {
+    return { provider: "turso" };
+  }
+
   // Jika sebelumnya sudah ada config Supabase
   if (getSupabaseConfig()) {
     return { provider: "supabase" };
   }
 
-  // Default provider rekomendasi: vercel_kv (otomatis jika di Vercel)
-  return { provider: "vercel_kv" };
+  // Default provider rekomendasi: Turso (100% Gratis Selamanya & Anti-Pause)
+  return { provider: "turso" };
 };
 
 export const isAnyCloudConfigured = (): boolean => {
   const cfg = getCloudSettings();
+  if (cfg.provider === "turso") {
+    return isTursoConfigured();
+  }
   if (cfg.provider === "vercel_kv") {
     return true; // Dicoba via /api/sync
   }
@@ -62,14 +75,23 @@ export const isAnyCloudConfigured = (): boolean => {
 };
 
 // ==================== VERCEL KV (NATIVE SERVERLESS) ====================
-export const checkVercelKvStatus = async (): Promise<{ available: boolean; configured: boolean; error?: string }> => {
+export const checkVercelKvStatus = async (): Promise<{
+  available: boolean;
+  configured: boolean;
+  turso_configured?: boolean;
+  error?: string;
+}> => {
   try {
     const res = await fetch("/api/sync?health=1");
     if (!res.ok) {
       return { available: false, configured: false, error: `HTTP ${res.status}` };
     }
     const json = await res.json();
-    return { available: true, configured: Boolean(json.configured) };
+    return {
+      available: true,
+      configured: Boolean(json.kv_configured || json.turso_configured),
+      turso_configured: Boolean(json.turso_configured),
+    };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return { available: false, configured: false, error: msg };
@@ -102,7 +124,7 @@ export const fetchVercelKv = async (
     const res = await fetch(`/api/sync?email=${encodeURIComponent(email.trim().toLowerCase())}`);
     if (!res.ok) {
       if (res.status === 404) {
-        return { success: false, error: "Belum ada data di Vercel KV untuk email ini." };
+        return { success: false, error: "Belum ada data di cloud untuk email ini." };
       }
       const json = await res.json().catch(() => ({}));
       return { success: false, error: json.error || `HTTP ${res.status}` };
@@ -286,6 +308,10 @@ export const syncAppDataToCloud = async (
 ): Promise<{ success: boolean; error?: string }> => {
   const cfg = getCloudSettings();
 
+  if (cfg.provider === "turso") {
+    return syncTursoData(email, data);
+  }
+
   if (cfg.provider === "vercel_kv") {
     return syncVercelKv(email, data);
   }
@@ -315,6 +341,10 @@ export const fetchAppDataFromCloud = async (
   email: string
 ): Promise<{ success: boolean; data?: AppData; error?: string }> => {
   const cfg = getCloudSettings();
+
+  if (cfg.provider === "turso") {
+    return fetchTursoData(email);
+  }
 
   if (cfg.provider === "vercel_kv") {
     return fetchVercelKv(email);

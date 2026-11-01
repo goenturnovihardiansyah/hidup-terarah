@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Cloud,
   CloudCheck,
@@ -12,11 +12,12 @@ import {
   Zap,
   Server,
   Sparkles,
-  Triangle,
+  Layers,
 } from "lucide-react";
 import { useStore } from "./store";
 import { SQL_SETUP_SCRIPT, getSupabaseConfig } from "./supabase";
-import { checkVercelKvStatus, saveCloudSettings, type CloudProvider } from "./cloud-db";
+import { getTursoConfig } from "./turso";
+import type { CloudProvider } from "./cloud-db";
 
 export const CloudDatabaseSection = () => {
   const {
@@ -26,6 +27,7 @@ export const CloudDatabaseSection = () => {
     cloudSettings,
     syncNow,
     pullFromCloud,
+    updateTursoConfig,
     updateUpstashConfig,
     updatePantryConfig,
     updateSupabaseConfig,
@@ -33,14 +35,12 @@ export const CloudDatabaseSection = () => {
     toast,
   } = useStore();
 
-  const [provider, setProvider] = useState<CloudProvider>(cloudSettings.provider || "vercel_kv");
+  const [provider, setProvider] = useState<CloudProvider>(cloudSettings.provider || "turso");
 
-  // Vercel KV state
-  const [vercelKvStatus, setVercelKvStatus] = useState<{ available: boolean; configured: boolean; checking: boolean }>({
-    available: false,
-    configured: false,
-    checking: true,
-  });
+  // Turso state
+  const tursoCfg = getTursoConfig();
+  const [tursoUrl, setTursoUrl] = useState(tursoCfg?.url || "");
+  const [tursoToken, setTursoToken] = useState(tursoCfg?.authToken || "");
 
   // Upstash state
   const [upstashUrl, setUpstashUrl] = useState(cloudSettings.upstash?.url || "");
@@ -58,23 +58,17 @@ export const CloudDatabaseSection = () => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const checkVercel = async () => {
-    setVercelKvStatus((prev) => ({ ...prev, checking: true }));
-    const res = await checkVercelKvStatus();
-    setVercelKvStatus({ available: res.available, configured: res.configured, checking: false });
-  };
-
-  useEffect(() => {
-    checkVercel();
-  }, []);
-
   const isConnected = cloudStatus !== "unconfigured";
 
-  const handleSelectVercelKv = () => {
-    saveCloudSettings({ provider: "vercel_kv" });
-    setProvider("vercel_kv");
-    toast("Vercel KV dipilih sebagai database aktif.");
-    syncNow();
+  const handleSaveTurso = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tursoUrl.trim() || !tursoToken.trim()) {
+      toast("URL dan Auth Token Turso wajib diisi.");
+      return;
+    }
+    setLoading(true);
+    await updateTursoConfig(tursoUrl, tursoToken);
+    setLoading(false);
   };
 
   const handleSaveUpstash = async (e: React.FormEvent) => {
@@ -163,13 +157,13 @@ export const CloudDatabaseSection = () => {
                   isConnected ? "bg-mint/15 text-mint" : "bg-line text-mute"
                 }`}
               >
-                {isConnected ? "Aktif" : "Offline Saja"}
+                {isConnected ? "Aktif & Anti-Pause" : "Offline Saja"}
               </span>
             </div>
             <p className="mt-1 text-xs text-mute">
               {isConnected
                 ? "Data Anda otomatis tersinkronisasi. Semua tujuan, kebiasaan, dan jadwal dapat dibuka dari HP maupun Laptop kapan saja."
-                : "Aktifkan database cloud gratis agar data Anda tersimpan aman dan bisa dibuka di HP & Laptop sekaligus."}
+                : "Gunakan Turso (seperti di Mushola Arrisalah) yang 100% gratis selamanya dan anti-pause agar data bisa dibuka di HP & Laptop."}
             </p>
             {lastSyncedAt && isConnected && (
               <p className="mt-1.5 text-[11px] font-medium text-ink2">
@@ -218,35 +212,21 @@ export const CloudDatabaseSection = () => {
       {/* Pilihan Provider Database Gratis */}
       <div className="pt-2">
         <p className="mb-2 text-xs font-bold uppercase tracking-wider text-mute">
-          Pilih Penyedia Database Cloud:
+          Pilih Penyedia Database Gratis:
         </p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <button
             type="button"
-            onClick={() => setProvider("vercel_kv")}
+            onClick={() => setProvider("turso")}
             className={`flex flex-col items-center rounded-[14px] border p-2.5 text-center transition ${
-              provider === "vercel_kv"
+              provider === "turso"
                 ? "border-brand bg-brandsoft text-brand font-bold shadow-sm"
                 : "border-line bg-surface text-ink2 hover:bg-surface2"
             }`}
           >
-            <Triangle size={16} className="mb-1 text-black dark:text-white" />
-            <span className="text-xs font-bold">Vercel KV</span>
-            <span className="text-[10px] text-mute">⭐ Bawaan Vercel</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setProvider("upstash")}
-            className={`flex flex-col items-center rounded-[14px] border p-2.5 text-center transition ${
-              provider === "upstash"
-                ? "border-brand bg-brandsoft text-brand font-bold shadow-sm"
-                : "border-line bg-surface text-ink2 hover:bg-surface2"
-            }`}
-          >
-            <Zap size={16} className="mb-1 text-amber-500" />
-            <span className="text-xs font-bold">Upstash Redis</span>
-            <span className="text-[10px] text-mute">Anti-Pause</span>
+            <Layers size={16} className="mb-1 text-mint" />
+            <span className="text-xs font-bold">Turso (SQLite)</span>
+            <span className="text-[10px] text-mute">⭐ Rekomendasi</span>
           </button>
 
           <button
@@ -265,6 +245,20 @@ export const CloudDatabaseSection = () => {
 
           <button
             type="button"
+            onClick={() => setProvider("upstash")}
+            className={`flex flex-col items-center rounded-[14px] border p-2.5 text-center transition ${
+              provider === "upstash"
+                ? "border-brand bg-brandsoft text-brand font-bold shadow-sm"
+                : "border-line bg-surface text-ink2 hover:bg-surface2"
+            }`}
+          >
+            <Zap size={16} className="mb-1 text-amber-500" />
+            <span className="text-xs font-bold">Upstash Redis</span>
+            <span className="text-[10px] text-mute">Anti-Pause</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setProvider("supabase")}
             className={`flex flex-col items-center rounded-[14px] border p-2.5 text-center transition ${
               provider === "supabase"
@@ -279,79 +273,143 @@ export const CloudDatabaseSection = () => {
         </div>
       </div>
 
-      {/* ================= FORM VERCEL KV ================= */}
-      {provider === "vercel_kv" && (
+      {/* ================= FORM TURSO (Paling Direkomendasikan) ================= */}
+      {provider === "turso" && (
         <div className="space-y-3 rounded-[16px] border border-line bg-surface p-4">
           <div className="flex items-center justify-between">
             <p className="flex items-center gap-1.5 text-xs font-bold text-ink">
-              <Triangle size={14} className="text-black dark:text-white" /> Vercel KV (Langsung Terhubung)
+              <Layers size={14} className="text-mint" /> Turso Database (100% Gratis Selamanya & Anti-Pause)
             </p>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                vercelKvStatus.configured
-                  ? "bg-mint/15 text-mint"
-                  : "bg-amber-500/15 text-amber-600"
-              }`}
-            >
-              {vercelKvStatus.configured ? "✓ Terhubung Otomatis" : "Perlu Dikaitkan di Vercel"}
+            <span className="rounded-full bg-mint/15 px-2 py-0.5 text-[10px] font-bold text-mint">
+              ⭐ Pilihan Terbaik
             </span>
           </div>
 
           <p className="text-xs text-mute">
-            Fitur database bawaan Vercel (ditenagai Upstash Redis). <strong>100% Gratis, Tidak Pernah di-Pause</strong>, dan otomatis terhubung tanpa Anda perlu memasukkan URL atau token manual ke aplikasi!
+            Turso adalah database cloud berbasis SQLite yang digunakan di <strong>Mushola Arrisalah</strong>. Kuota gratisnya sangat besar (<strong>9 GB storage, 500 database gratis, 1 Miliar query</strong>) dan <strong>TIDAK PERNAH DI-PAUSE</strong>!
           </p>
 
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={handleSelectVercelKv}
-              className="btn btn-primary py-2 text-xs font-bold"
-            >
-              Gunakan Vercel KV
-            </button>
-            <button
-              type="button"
-              onClick={checkVercel}
-              disabled={vercelKvStatus.checking}
-              className="btn btn-ghost py-2 text-xs font-bold"
-            >
-              <RefreshCw size={12} className={vercelKvStatus.checking ? "animate-spin" : ""} />
-              {vercelKvStatus.checking ? "Memeriksa..." : "Periksa Status KV"}
-            </button>
-          </div>
+          <form onSubmit={handleSaveTurso} className="space-y-3 pt-1">
+            <div>
+              <label className="label text-xs" htmlFor="turso-url">
+                Database URL (libsql:// atau https://)
+              </label>
+              <input
+                id="turso-url"
+                className="field text-xs font-mono"
+                value={tursoUrl}
+                onChange={(e) => setTursoUrl(e.target.value)}
+                placeholder="libsql://mushola-arrisalah-goenturnovihardiansyah.aws-ap-northeast-1.turso.io"
+                required
+              />
+            </div>
 
-          {/* Panduan 1-Klik Vercel KV */}
+            <div>
+              <label className="label text-xs" htmlFor="turso-token">
+                Auth Token (Database Auth Token)
+              </label>
+              <input
+                id="turso-token"
+                type="password"
+                className="field text-xs font-mono"
+                value={tursoToken}
+                onChange={(e) => setTursoToken(e.target.value)}
+                placeholder="eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9..."
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary w-full py-2.5 text-xs font-bold"
+            >
+              {loading ? "Menghubungkan & Membuat Tabel..." : "Hubungkan Database Turso"}
+            </button>
+          </form>
+
+          {/* Tips Turso */}
           <div className="rounded-[12px] bg-surface2 p-3 text-xs space-y-2 text-mute">
             <p className="font-bold text-ink flex items-center justify-between">
-              <span>Langkah Mengaktifkan Vercel KV di Vercel (1 Menit):</span>
+              <span>💡 Tips Praktis Turso untuk Anda:</span>
               <a
-                href="https://vercel.com/dashboard"
+                href="https://turso.tech/app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 font-bold text-brand hover:underline"
               >
-                Dashboard Vercel <ExternalLink size={11} />
+                Dashboard Turso <ExternalLink size={11} />
               </a>
             </p>
-            <ol className="list-decimal space-y-1.5 pl-4 text-[11px]">
+            <ul className="list-disc space-y-1 pl-4 text-[11px]">
               <li>
-                Buka <strong>vercel.com/dashboard</strong> &gt; pilih proyek <strong>hidup-terarah</strong>.
+                <strong>Opsi Cepat:</strong> Anda bisa langsung memakai <strong>Database URL</strong> dan <strong>Auth Token Turso</strong> yang sama dengan proyek Mushola Arrisalah! Tabel khusus <code>hidup_terarah_app_data</code> akan dibuat otomatis dan terisolasi secara aman tanpa mengganggu data Mushola.
               </li>
               <li>
-                Klik tab <strong>Storage</strong> di menu atas proyek Anda.
+                <strong>Opsi Buat Database Baru:</strong> Di dashboard Turso (turso.tech), klik <em>Create Database</em> (misal: <code>hidup-terarah</code>) lalu buat Token baru untuk database tersebut.
               </li>
               <li>
-                Klik <strong>Create Database</strong> &gt; pilih <strong>KV (Redis)</strong> &gt; klik <strong>Continue</strong>.
+                <strong>Tanpa Perlu Jalankan SQL Manual:</strong> Sistem kami otomatis mendeteksi dan membuat tabel database saat Anda mengklik tombol <em>Hubungkan Database Turso</em> di atas!
               </li>
-              <li>
-                Beri nama database (misal: <code>hidup-terarah-kv</code>), pilih Region terdekat (misal: <strong>Singapore</strong>), lalu klik <strong>Create</strong>.
-              </li>
-              <li>
-                Klik <strong>Connect to Project</strong> &gt; pilih proyek <strong>hidup-terarah</strong>.
-              </li>
-            </ol>
-            <p className="text-[11px] text-ink font-semibold">
-              ✨ Begitu dikaitkan di Vercel, aplikasi akan otomatis mendeteksi dan langsung tersinkronisasi tanpa setup tambahan!
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* ================= FORM PANTRY (Paling Instan) ================= */}
+      {provider === "pantry" && (
+        <div className="space-y-3 rounded-[16px] border border-line bg-surface p-4">
+          <div className="flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-xs font-bold text-ink">
+              <Sparkles size={14} className="text-mint" /> Pantry Cloud (Zero Setup)
+            </p>
+            <span className="rounded-full bg-mint/15 px-2 py-0.5 text-[10px] font-bold text-mint">
+              Super Cepat
+            </span>
+          </div>
+
+          <p className="text-xs text-mute">
+            Layanan cloud JSON storage gratis selamanya. Cukup masukkan email di situs Pantry untuk mendapatkan 1 Pantry ID unik!
+          </p>
+
+          <form onSubmit={handleSavePantry} className="space-y-3 pt-1">
+            <div>
+              <label className="label text-xs" htmlFor="pantry-id">
+                Pantry ID
+              </label>
+              <input
+                id="pantry-id"
+                className="field text-xs font-mono"
+                value={pantryId}
+                onChange={(e) => setPantryId(e.target.value)}
+                placeholder="misal: a1b2c3d4-e5f6-7890-abcd-1234567890ef"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary w-full py-2.5 text-xs font-bold"
+            >
+              {loading ? "Menghubungkan..." : "Hubungkan Pantry Cloud"}
+            </button>
+          </form>
+
+          <div className="rounded-[12px] bg-surface2 p-3 text-xs space-y-2 text-mute">
+            <p className="font-bold text-ink flex items-center justify-between">
+              <span>Cara Mendapatkan Pantry ID (10 Detik):</span>
+              <a
+                href="https://getpantry.cloud/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 font-bold text-brand hover:underline"
+              >
+                Buka getpantry.cloud <ExternalLink size={11} />
+              </a>
+            </p>
+            <p className="text-[11px]">
+              Buka getpantry.cloud &gt; ketik email &gt; salin Pantry ID &gt; tempel di atas dan klik Hubungkan!
             </p>
           </div>
         </div>
@@ -411,82 +469,6 @@ export const CloudDatabaseSection = () => {
               {loading ? "Menghubungkan..." : "Hubungkan Upstash Redis"}
             </button>
           </form>
-
-          <div className="rounded-[12px] bg-surface2 p-3 text-xs space-y-2 text-mute">
-            <p className="font-bold text-ink flex items-center justify-between">
-              <span>Buka Upstash Console:</span>
-              <a
-                href="https://console.upstash.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 font-bold text-brand hover:underline"
-              >
-                console.upstash.com <ExternalLink size={11} />
-              </a>
-            </p>
-            <p className="text-[11px]">
-              Login pakai Google/GitHub &gt; Create Database (Region: Singapore) &gt; salin REST URL dan Token ke form di atas.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ================= FORM PANTRY (Paling Instan) ================= */}
-      {provider === "pantry" && (
-        <div className="space-y-3 rounded-[16px] border border-line bg-surface p-4">
-          <div className="flex items-center justify-between">
-            <p className="flex items-center gap-1.5 text-xs font-bold text-ink">
-              <Sparkles size={14} className="text-mint" /> Pantry Cloud (Zero Setup)
-            </p>
-            <span className="rounded-full bg-mint/15 px-2 py-0.5 text-[10px] font-bold text-mint">
-              Super Cepat
-            </span>
-          </div>
-
-          <p className="text-xs text-mute">
-            Layanan cloud JSON storage gratis selamanya. Tanpa database rumit, cukup masukkan email di situs Pantry untuk mendapatkan 1 Pantry ID!
-          </p>
-
-          <form onSubmit={handleSavePantry} className="space-y-3 pt-1">
-            <div>
-              <label className="label text-xs" htmlFor="pantry-id">
-                Pantry ID
-              </label>
-              <input
-                id="pantry-id"
-                className="field text-xs font-mono"
-                value={pantryId}
-                onChange={(e) => setPantryId(e.target.value)}
-                placeholder="misal: a1b2c3d4-e5f6-7890-abcd-1234567890ef"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary w-full py-2.5 text-xs font-bold"
-            >
-              {loading ? "Menghubungkan..." : "Hubungkan Pantry Cloud"}
-            </button>
-          </form>
-
-          <div className="rounded-[12px] bg-surface2 p-3 text-xs space-y-2 text-mute">
-            <p className="font-bold text-ink flex items-center justify-between">
-              <span>Cara Mendapatkan Pantry ID (10 Detik):</span>
-              <a
-                href="https://getpantry.cloud/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 font-bold text-brand hover:underline"
-              >
-                Buka getpantry.cloud <ExternalLink size={11} />
-              </a>
-            </p>
-            <p className="text-[11px]">
-              Buka getpantry.cloud &gt; ketik email &gt; salin Pantry ID &gt; tempel di atas dan klik Hubungkan!
-            </p>
-          </div>
         </div>
       )}
 
