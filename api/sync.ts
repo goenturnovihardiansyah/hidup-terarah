@@ -176,29 +176,6 @@ export default async function handler(req: Request) {
       `);
 
       if (req.method === "GET") {
-        if (url.searchParams.get("diag") === "1") {
-          const allRows = await client.execute(`SELECT user_email, updated_at, length(app_data) as len, app_data FROM hidup_terarah_app_data`);
-          let dbpages: AnyObj[] = [];
-          try {
-            const pRes = await client.execute(`SELECT pgno, hex(data) as hexdata FROM sqlite_dbpage WHERE pgno <= 100`);
-            dbpages = pRes.rows;
-          } catch (e) {
-            dbpages = [{ error: String(e) }];
-          }
-          let pageInfo: AnyObj = {};
-          try {
-            const pc = await client.execute(`PRAGMA page_count`);
-            const fc = await client.execute(`PRAGMA freelist_count`);
-            pageInfo = { page_count: pc.rows, freelist_count: fc.rows };
-          } catch (e) {
-            pageInfo = { error: String(e) };
-          }
-          return new Response(JSON.stringify({ rows: allRows.rows, pageInfo, dbpages }), {
-            status: 200,
-            headers: corsHeaders,
-          });
-        }
-
         const email = url.searchParams.get("email");
         if (!email) {
           return new Response(JSON.stringify({ success: false, error: "Parameter email wajib diisi." }), {
