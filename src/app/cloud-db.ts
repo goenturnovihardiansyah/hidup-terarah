@@ -5,7 +5,7 @@ import {
   fetchDataFromCloud as fetchSupabase,
 } from "./supabase";
 
-export type CloudProvider = "upstash" | "pantry" | "supabase";
+export type CloudProvider = "vercel_kv" | "upstash" | "pantry" | "supabase";
 
 export interface UpstashConfig {
   url: string;
@@ -40,12 +40,15 @@ export const getCloudSettings = (): CloudSettings => {
     return { provider: "supabase" };
   }
 
-  // Default provider rekomendasi: Upstash (bebas pause, ada di Vercel & upstash.com)
-  return { provider: "upstash" };
+  // Default provider rekomendasi: vercel_kv (otomatis jika di Vercel)
+  return { provider: "vercel_kv" };
 };
 
 export const isAnyCloudConfigured = (): boolean => {
   const cfg = getCloudSettings();
+  if (cfg.provider === "vercel_kv") {
+    return true; // Dicoba via /api/sync
+  }
   if (cfg.provider === "upstash") {
     return Boolean(cfg.upstash?.url && cfg.upstash?.token);
   }
@@ -56,6 +59,61 @@ export const isAnyCloudConfigured = (): boolean => {
     return getSupabaseConfig() !== null;
   }
   return false;
+};
+
+// ==================== VERCEL KV (NATIVE SERVERLESS) ====================
+export const checkVercelKvStatus = async (): Promise<{ available: boolean; configured: boolean; error?: string }> => {
+  try {
+    const res = await fetch("/api/sync?health=1");
+    if (!res.ok) {
+      return { available: false, configured: false, error: `HTTP ${res.status}` };
+    }
+    const json = await res.json();
+    return { available: true, configured: Boolean(json.configured) };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { available: false, configured: false, error: msg };
+  }
+};
+
+export const syncVercelKv = async (
+  email: string,
+  data: AppData
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const res = await fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim().toLowerCase(), data }),
+    });
+
+    const json = await res.json();
+    return json;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
+  }
+};
+
+export const fetchVercelKv = async (
+  email: string
+): Promise<{ success: boolean; data?: AppData; error?: string }> => {
+  try {
+    const res = await fetch(`/api/sync?email=${encodeURIComponent(email.trim().toLowerCase())}`);
+    if (!res.ok) {
+      if (res.status === 404) {
+        return { success: false, error: "Belum ada data di Vercel KV untuk email ini." };
+      }
+      const json = await res.json().catch(() => ({}));
+      return { success: false, error: json.error || `HTTP ${res.status}` };
+    }
+
+    const json = await res.json();
+    return json;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
+  }
 };
 
 // ==================== UPSTASH (REDIS REST API) ====================
@@ -228,6 +286,10 @@ export const syncAppDataToCloud = async (
 ): Promise<{ success: boolean; error?: string }> => {
   const cfg = getCloudSettings();
 
+  if (cfg.provider === "vercel_kv") {
+    return syncVercelKv(email, data);
+  }
+
   if (cfg.provider === "upstash") {
     if (!cfg.upstash?.url || !cfg.upstash?.token) {
       return { success: false, error: "Kredensial Upstash belum lengkap." };
@@ -253,6 +315,10 @@ export const fetchAppDataFromCloud = async (
   email: string
 ): Promise<{ success: boolean; data?: AppData; error?: string }> => {
   const cfg = getCloudSettings();
+
+  if (cfg.provider === "vercel_kv") {
+    return fetchVercelKv(email);
+  }
 
   if (cfg.provider === "upstash") {
     if (!cfg.upstash?.url || !cfg.upstash?.token) {

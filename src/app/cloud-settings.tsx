@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Cloud,
   CloudCheck,
@@ -12,10 +12,11 @@ import {
   Zap,
   Server,
   Sparkles,
+  Triangle,
 } from "lucide-react";
 import { useStore } from "./store";
 import { SQL_SETUP_SCRIPT, getSupabaseConfig } from "./supabase";
-import type { CloudProvider } from "./cloud-db";
+import { checkVercelKvStatus, saveCloudSettings, type CloudProvider } from "./cloud-db";
 
 export const CloudDatabaseSection = () => {
   const {
@@ -32,7 +33,14 @@ export const CloudDatabaseSection = () => {
     toast,
   } = useStore();
 
-  const [provider, setProvider] = useState<CloudProvider>(cloudSettings.provider || "upstash");
+  const [provider, setProvider] = useState<CloudProvider>(cloudSettings.provider || "vercel_kv");
+
+  // Vercel KV state
+  const [vercelKvStatus, setVercelKvStatus] = useState<{ available: boolean; configured: boolean; checking: boolean }>({
+    available: false,
+    configured: false,
+    checking: true,
+  });
 
   // Upstash state
   const [upstashUrl, setUpstashUrl] = useState(cloudSettings.upstash?.url || "");
@@ -50,7 +58,24 @@ export const CloudDatabaseSection = () => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  const checkVercel = async () => {
+    setVercelKvStatus((prev) => ({ ...prev, checking: true }));
+    const res = await checkVercelKvStatus();
+    setVercelKvStatus({ available: res.available, configured: res.configured, checking: false });
+  };
+
+  useEffect(() => {
+    checkVercel();
+  }, []);
+
   const isConnected = cloudStatus !== "unconfigured";
+
+  const handleSelectVercelKv = () => {
+    saveCloudSettings({ provider: "vercel_kv" });
+    setProvider("vercel_kv");
+    toast("Vercel KV dipilih sebagai database aktif.");
+    syncNow();
+  };
 
   const handleSaveUpstash = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +155,7 @@ export const CloudDatabaseSection = () => {
             <div className="flex items-center gap-2">
               <span className="font-bold text-ink">
                 {isConnected
-                  ? `Cloud Aktif (${cloudSettings.provider.toUpperCase()})`
+                  ? `Cloud Aktif (${cloudSettings.provider.replace("_", " ").toUpperCase()})`
                   : "Belum Terhubung ke Database Cloud"}
               </span>
               <span
@@ -138,13 +163,13 @@ export const CloudDatabaseSection = () => {
                   isConnected ? "bg-mint/15 text-mint" : "bg-line text-mute"
                 }`}
               >
-                {isConnected ? "Aktif & Anti-Pause" : "Offline Saja"}
+                {isConnected ? "Aktif" : "Offline Saja"}
               </span>
             </div>
             <p className="mt-1 text-xs text-mute">
               {isConnected
                 ? "Data Anda otomatis tersinkronisasi. Semua tujuan, kebiasaan, dan jadwal dapat dibuka dari HP maupun Laptop kapan saja."
-                : "Pilih salah satu penyedia database gratis di bawah ini agar data Anda tidak hilang dan bisa dibuka di HP & Laptop."}
+                : "Aktifkan database cloud gratis agar data Anda tersimpan aman dan bisa dibuka di HP & Laptop sekaligus."}
             </p>
             {lastSyncedAt && isConnected && (
               <p className="mt-1.5 text-[11px] font-medium text-ink2">
@@ -193,9 +218,23 @@ export const CloudDatabaseSection = () => {
       {/* Pilihan Provider Database Gratis */}
       <div className="pt-2">
         <p className="mb-2 text-xs font-bold uppercase tracking-wider text-mute">
-          Pilih Penyedia Database Gratis:
+          Pilih Penyedia Database Cloud:
         </p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <button
+            type="button"
+            onClick={() => setProvider("vercel_kv")}
+            className={`flex flex-col items-center rounded-[14px] border p-2.5 text-center transition ${
+              provider === "vercel_kv"
+                ? "border-brand bg-brandsoft text-brand font-bold shadow-sm"
+                : "border-line bg-surface text-ink2 hover:bg-surface2"
+            }`}
+          >
+            <Triangle size={16} className="mb-1 text-black dark:text-white" />
+            <span className="text-xs font-bold">Vercel KV</span>
+            <span className="text-[10px] text-mute">⭐ Bawaan Vercel</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setProvider("upstash")}
@@ -207,7 +246,7 @@ export const CloudDatabaseSection = () => {
           >
             <Zap size={16} className="mb-1 text-amber-500" />
             <span className="text-xs font-bold">Upstash Redis</span>
-            <span className="text-[10px] text-mute">⭐ Rekomendasi</span>
+            <span className="text-[10px] text-mute">Anti-Pause</span>
           </button>
 
           <button
@@ -240,12 +279,90 @@ export const CloudDatabaseSection = () => {
         </div>
       </div>
 
-      {/* ================= FORM UPSTASH (Paling Disarankan) ================= */}
+      {/* ================= FORM VERCEL KV ================= */}
+      {provider === "vercel_kv" && (
+        <div className="space-y-3 rounded-[16px] border border-line bg-surface p-4">
+          <div className="flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-xs font-bold text-ink">
+              <Triangle size={14} className="text-black dark:text-white" /> Vercel KV (Langsung Terhubung)
+            </p>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                vercelKvStatus.configured
+                  ? "bg-mint/15 text-mint"
+                  : "bg-amber-500/15 text-amber-600"
+              }`}
+            >
+              {vercelKvStatus.configured ? "✓ Terhubung Otomatis" : "Perlu Dikaitkan di Vercel"}
+            </span>
+          </div>
+
+          <p className="text-xs text-mute">
+            Fitur database bawaan Vercel (ditenagai Upstash Redis). <strong>100% Gratis, Tidak Pernah di-Pause</strong>, dan otomatis terhubung tanpa Anda perlu memasukkan URL atau token manual ke aplikasi!
+          </p>
+
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleSelectVercelKv}
+              className="btn btn-primary py-2 text-xs font-bold"
+            >
+              Gunakan Vercel KV
+            </button>
+            <button
+              type="button"
+              onClick={checkVercel}
+              disabled={vercelKvStatus.checking}
+              className="btn btn-ghost py-2 text-xs font-bold"
+            >
+              <RefreshCw size={12} className={vercelKvStatus.checking ? "animate-spin" : ""} />
+              {vercelKvStatus.checking ? "Memeriksa..." : "Periksa Status KV"}
+            </button>
+          </div>
+
+          {/* Panduan 1-Klik Vercel KV */}
+          <div className="rounded-[12px] bg-surface2 p-3 text-xs space-y-2 text-mute">
+            <p className="font-bold text-ink flex items-center justify-between">
+              <span>Langkah Mengaktifkan Vercel KV di Vercel (1 Menit):</span>
+              <a
+                href="https://vercel.com/dashboard"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 font-bold text-brand hover:underline"
+              >
+                Dashboard Vercel <ExternalLink size={11} />
+              </a>
+            </p>
+            <ol className="list-decimal space-y-1.5 pl-4 text-[11px]">
+              <li>
+                Buka <strong>vercel.com/dashboard</strong> &gt; pilih proyek <strong>hidup-terarah</strong>.
+              </li>
+              <li>
+                Klik tab <strong>Storage</strong> di menu atas proyek Anda.
+              </li>
+              <li>
+                Klik <strong>Create Database</strong> &gt; pilih <strong>KV (Redis)</strong> &gt; klik <strong>Continue</strong>.
+              </li>
+              <li>
+                Beri nama database (misal: <code>hidup-terarah-kv</code>), pilih Region terdekat (misal: <strong>Singapore</strong>), lalu klik <strong>Create</strong>.
+              </li>
+              <li>
+                Klik <strong>Connect to Project</strong> &gt; pilih proyek <strong>hidup-terarah</strong>.
+              </li>
+            </ol>
+            <p className="text-[11px] text-ink font-semibold">
+              ✨ Begitu dikaitkan di Vercel, aplikasi akan otomatis mendeteksi dan langsung tersinkronisasi tanpa setup tambahan!
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ================= FORM UPSTASH (Manual) ================= */}
       {provider === "upstash" && (
         <div className="space-y-3 rounded-[16px] border border-line bg-surface p-4">
           <div className="flex items-center justify-between">
             <p className="flex items-center gap-1.5 text-xs font-bold text-ink">
-              <Zap size={14} className="text-amber-500" /> Upstash Redis (100% Gratis Selamanya)
+              <Zap size={14} className="text-amber-500" /> Upstash Redis (Manual REST URL & Token)
             </p>
             <span className="rounded-full bg-mint/15 px-2 py-0.5 text-[10px] font-bold text-mint">
               Anti-Pause · 24/7 Aktif
@@ -253,7 +370,7 @@ export const CloudDatabaseSection = () => {
           </div>
 
           <p className="text-xs text-mute">
-            Upstash memberikan kuota <strong>10.000 request per hari secara gratis</strong> dan <strong>tidak pernah di-pause</strong>. Sangat cocok untuk sinkronisasi HP & Laptop!
+            Gunakan jika Anda membuat database langsung di website Upstash. Kuota <strong>10.000 request/hari gratis</strong> dan tidak pernah di-pause.
           </p>
 
           <form onSubmit={handleSaveUpstash} className="space-y-3 pt-1">
@@ -295,32 +412,20 @@ export const CloudDatabaseSection = () => {
             </button>
           </form>
 
-          {/* Panduan Upstash */}
           <div className="rounded-[12px] bg-surface2 p-3 text-xs space-y-2 text-mute">
             <p className="font-bold text-ink flex items-center justify-between">
-              <span>Cara Mendapatkan Kredensial Upstash (1 Menit):</span>
+              <span>Buka Upstash Console:</span>
               <a
                 href="https://console.upstash.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 font-bold text-brand hover:underline"
               >
-                Buka Upstash <ExternalLink size={11} />
+                console.upstash.com <ExternalLink size={11} />
               </a>
             </p>
-            <ol className="list-decimal space-y-1 pl-4 text-[11px]">
-              <li>
-                Buka <strong>console.upstash.com</strong> (login 1 klik pakai akun Google / GitHub Anda).
-              </li>
-              <li>
-                Klik tombol <strong>Create Database</strong> &gt; Beri nama misal <code>hidup-terarah</code> &gt; pilih Region terdekat (misal: <strong>Singapore</strong>) &gt; klik Create.
-              </li>
-              <li>
-                Gulir ke bawah ke bagian <strong>REST API</strong> &gt; salin <code>UPSTASH_REDIS_REST_URL</code> dan <code>UPSTASH_REDIS_REST_TOKEN</code>, lalu tempel di form di atas!
-              </li>
-            </ol>
-            <p className="text-[11px] text-ink2 italic">
-              💡 <em>Tips Vercel:</em> Anda juga bisa membuat database ini langsung di Dashboard Vercel melalui menu <strong>Storage &gt; Create Database &gt; KV</strong>!
+            <p className="text-[11px]">
+              Login pakai Google/GitHub &gt; Create Database (Region: Singapore) &gt; salin REST URL dan Token ke form di atas.
             </p>
           </div>
         </div>
@@ -334,12 +439,12 @@ export const CloudDatabaseSection = () => {
               <Sparkles size={14} className="text-mint" /> Pantry Cloud (Zero Setup)
             </p>
             <span className="rounded-full bg-mint/15 px-2 py-0.5 text-[10px] font-bold text-mint">
-              Super Mudah
+              Super Cepat
             </span>
           </div>
 
           <p className="text-xs text-mute">
-            Layanan cloud JSON storage gratis selamanya. Tanpa atur database, tanpa konfigurasi tabel, cukup masukkan email di situs Pantry untuk mendapatkan 1 Pantry ID!
+            Layanan cloud JSON storage gratis selamanya. Tanpa database rumit, cukup masukkan email di situs Pantry untuk mendapatkan 1 Pantry ID!
           </p>
 
           <form onSubmit={handleSavePantry} className="space-y-3 pt-1">
@@ -366,7 +471,6 @@ export const CloudDatabaseSection = () => {
             </button>
           </form>
 
-          {/* Panduan Pantry */}
           <div className="rounded-[12px] bg-surface2 p-3 text-xs space-y-2 text-mute">
             <p className="font-bold text-ink flex items-center justify-between">
               <span>Cara Mendapatkan Pantry ID (10 Detik):</span>
@@ -379,17 +483,9 @@ export const CloudDatabaseSection = () => {
                 Buka getpantry.cloud <ExternalLink size={11} />
               </a>
             </p>
-            <ol className="list-decimal space-y-1 pl-4 text-[11px]">
-              <li>
-                Buka <strong>getpantry.cloud</strong>.
-              </li>
-              <li>
-                Masukkan email Anda di kolom pendaftaran lalu klik <strong>Create Pantry</strong>.
-              </li>
-              <li>
-                Salin <strong>Pantry ID</strong> yang Anda dapatkan, lalu tempel di form di atas dan klik Hubungkan!
-              </li>
-            </ol>
+            <p className="text-[11px]">
+              Buka getpantry.cloud &gt; ketik email &gt; salin Pantry ID &gt; tempel di atas dan klik Hubungkan!
+            </p>
           </div>
         </div>
       )}
@@ -406,7 +502,7 @@ export const CloudDatabaseSection = () => {
           <div className="rounded-[12px] bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400 space-y-1">
             <p className="font-bold">⚠️ Kenapa project Supabase Anda disuruh upgrade?</p>
             <p className="text-[11px]">
-              Supabase Free Plan membatasi maksimal 2 project. Jika Anda sudah punya 2 project lama, Anda cukup <strong>Hapus (Delete) salah satu project lama yang tidak terpakai</strong> di dashboard Supabase agar bisa membuat project baru untuk Hidup Terarah secara gratis tanpa bayar!
+              Supabase Free Plan membatasi maksimal 2 project. Anda cukup <strong>Hapus (Delete) salah satu project lama yang tidak terpakai</strong> di dashboard Supabase agar bisa membuat project baru untuk Hidup Terarah secara gratis tanpa bayar!
             </p>
           </div>
 
@@ -449,7 +545,6 @@ export const CloudDatabaseSection = () => {
             </button>
           </form>
 
-          {/* Skrip SQL Supabase */}
           <div className="rounded-[12px] bg-surface2 p-3 text-xs space-y-2">
             <div className="flex items-center justify-between">
               <span className="font-bold text-ink">Skrip SQL Supabase:</span>
