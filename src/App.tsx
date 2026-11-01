@@ -3,6 +3,7 @@ import { Shell } from "./app/shell";
 import { Auth } from "./app/views/Auth";
 import { Dashboard } from "./app/views/Dashboard";
 import { Goals } from "./app/views/Goals";
+import { Projects } from "./app/views/Projects";
 import { Habits } from "./app/views/Habits";
 import { Schedule } from "./app/views/Schedule";
 import { Finance } from "./app/views/Finance";
@@ -21,6 +22,7 @@ const Views = () => {
   const V = {
     beranda: Dashboard,
     tujuan: Goals,
+    proyek: Projects,
     kebiasaan: Habits,
     jadwal: Schedule,
     keuangan: Finance,

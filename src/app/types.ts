@@ -97,6 +97,40 @@ export interface StreakMilestone {
   badge: string;
 }
 
+// ---- Manajemen To-Do Project & Task ----
+export type ProjectStatus = "aktif" | "ditunda" | "selesai" | "arsip";
+export type TaskPriority = "rendah" | "sedang" | "tinggi";
+export type TaskStatus = "todo" | "proses" | "selesai";
+
+export interface Project {
+  id: ID;
+  name: string;
+  description: string;
+  category: string; // Misal: "Freelance", "Kerja", "Pribadi", "Bisnis"
+  deadline?: string; // YYYY-MM-DD
+  due_date?: string; // YYYY-MM-DD
+  status: ProjectStatus;
+  color: Tint;
+  icon: string;
+  created_at: string;
+  completed_at?: string;
+}
+
+export interface ProjectTask {
+  id: ID;
+  project_id: ID;
+  title: string;
+  notes?: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+  is_done: boolean;
+  due_date?: string; // YYYY-MM-DD
+  order_index: number;
+  created_at: string;
+  done_at?: string;
+  completed_at?: string;
+}
+
 export type Tint =
   | "lilac"
   | "rose"
@@ -130,4 +164,8 @@ export interface AppData {
   weights?: WeightLog[];
   waterLogs?: WaterLog[];
   fitnessProfile?: FitnessProfile;
+  projects?: Project[];
+  projectTasks?: ProjectTask[];
+  deleted_ids?: string[];
+  updated_at?: string;
 }

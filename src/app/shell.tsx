@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { House, Target, Repeat, CalendarDays, Wallet, BellRing, ChartColumn, Settings, Search, Bell, Plus, Ellipsis, X, NotebookPen, Cloud, CloudCheck, RefreshCw, Activity } from "lucide-react";
+import { House, Target, Repeat, CalendarDays, Wallet, BellRing, ChartColumn, Settings, Search, Bell, Plus, Ellipsis, X, NotebookPen, Cloud, CloudCheck, RefreshCw, Activity, FolderKanban } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useStore, type View } from "./store";
@@ -12,6 +12,7 @@ import { getDailyReflectionQuote } from "./quotes";
 export const NAV: { v: View; l: string; icon: typeof House; tint: string }[] = [
   { v: "beranda", l: "Beranda", icon: House, tint: "var(--lilac)" },
   { v: "tujuan", l: "Tujuan", icon: Target, tint: "var(--rose)" },
+  { v: "proyek", l: "Proyek", icon: FolderKanban, tint: "var(--sky)" },
   { v: "kebiasaan", l: "Kebiasaan", icon: Repeat, tint: "var(--mint)" },
   { v: "jadwal", l: "Jadwal", icon: CalendarDays, tint: "var(--peach)" },
   { v: "keuangan", l: "Keuangan", icon: Wallet, tint: "var(--butter)" },
@@ -70,6 +71,8 @@ const SearchBox = () => {
     const s = q.trim().toLowerCase(); if (s.length < 2) return [];
     const r: { k: string; label: string; meta: string; go: () => void }[] = [];
     data.goals.filter((g) => g.title.toLowerCase().includes(s)).forEach((g) => r.push({ k: g.id, label: g.title, meta: "Tujuan", go: () => setView("tujuan") }));
+    (data.projects || []).filter((p) => p.name.toLowerCase().includes(s)).forEach((p) => r.push({ k: p.id, label: p.name, meta: "Proyek", go: () => setView("proyek") }));
+    (data.projectTasks || []).filter((t) => t.title.toLowerCase().includes(s)).forEach((t) => r.push({ k: t.id, label: t.title, meta: "Task Proyek", go: () => setView("proyek") }));
     data.habits.filter((h) => h.name.toLowerCase().includes(s)).forEach((h) => r.push({ k: h.id, label: h.name, meta: "Kebiasaan", go: () => setView("kebiasaan") }));
     data.schedules.filter((x) => x.title.toLowerCase().includes(s)).forEach((x) => r.push({ k: x.id, label: x.title, meta: `Agenda · ${fmtDateShort(new Date(x.start_at))}`, go: () => { setFocusDate(x.start_at.slice(0, 10)); setView("jadwal"); } }));
     data.transactions.filter((t) => t.note.toLowerCase().includes(s)).slice(-5).forEach((t) => r.push({ k: t.id, label: t.note, meta: `${t.type === "pemasukan" ? "+" : "-"}${rupiah(t.amount)}`, go: () => setView("keuangan") }));

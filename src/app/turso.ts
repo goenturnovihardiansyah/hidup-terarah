@@ -137,10 +137,12 @@ export const syncTursoData = async (
   if (!client) {
     // Fallback otomatis ke serverless /api/sync jika terhubung via Vercel Integration
     try {
+      const bodyStr = JSON.stringify({ email: email.trim().toLowerCase(), data });
       const res = await fetch("/api/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), data }),
+        body: bodyStr,
+        keepalive: bodyStr.length < 60000,
       });
       const json = await res.json();
       return json;

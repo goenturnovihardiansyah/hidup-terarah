@@ -33,6 +33,9 @@ export const emptyData = (): AppData => ({
     daily_water_target_ml: 2000,
     weekly_workout_target_minutes: 150,
   },
+  projects: [],
+  projectTasks: [],
+  deleted_ids: [],
 });
 
 /** pseudo-random deterministik */

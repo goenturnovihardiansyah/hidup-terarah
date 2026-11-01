@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { 
   AppData, Goal, GoalStep, Habit, Schedule, Transaction, 
   Reflection, Preferences, Category, WorkoutLog, CalorieLog, 
-  WeightLog, FitnessProfile, StreakMilestone 
+  WeightLog, FitnessProfile, StreakMilestone, Project, ProjectTask,
+  ProjectStatus, TaskPriority
 } from "./types";
 import { emptyData, demoData } from "./seed";
 import { uid, ymd, fmtTime, startOfDay, addDays } from "./dates";
@@ -31,97 +32,152 @@ import {
 
 const KEY = "hidup-terarah:v1";
 
-/** Memastikan setiap entitas memiliki ID unik dan tidak saling tercampur atau terhapus bersamaan */
+/** Memastikan setiap entitas memiliki ID unik, memulihkan relasi langkah tujuan, dan menjaga integritas data */
 export const sanitizeData = (d: AppData): AppData => {
+  const deletedSet = new Set<string>(Array.isArray(d.deleted_ids) ? d.deleted_ids : []);
+
   const seenHabits = new Set<string>();
-  const habits = (d.habits || []).map((h) => {
-    let id = h?.id;
-    if (!id || typeof id !== "string" || id === "undefined" || seenHabits.has(id)) {
-      id = uid();
-    }
-    seenHabits.add(id);
-    return { ...h, id };
-  });
+  const habits = (d.habits || [])
+    .filter((h) => !h?.id || !deletedSet.has(h.id))
+    .map((h) => {
+      let id = h?.id;
+      if (!id || typeof id !== "string" || id === "undefined" || seenHabits.has(id)) {
+        id = uid();
+      }
+      seenHabits.add(id);
+      return { ...h, id };
+    });
 
   const seenSchedules = new Set<string>();
-  const schedules = (d.schedules || []).map((s) => {
-    let id = s?.id;
-    if (!id || typeof id !== "string" || id === "undefined" || seenSchedules.has(id)) {
-      id = uid();
-    }
-    seenSchedules.add(id);
-    return { ...s, id };
-  });
+  const schedules = (d.schedules || [])
+    .filter((s) => !s?.id || !deletedSet.has(s.id))
+    .map((s) => {
+      let id = s?.id;
+      if (!id || typeof id !== "string" || id === "undefined" || seenSchedules.has(id)) {
+        id = uid();
+      }
+      seenSchedules.add(id);
+      return { ...s, id };
+    });
 
   const seenGoals = new Set<string>();
-  const goals = (d.goals || []).map((g) => {
-    let id = g?.id;
-    if (!id || typeof id !== "string" || id === "undefined" || seenGoals.has(id)) {
-      id = uid();
-    }
-    seenGoals.add(id);
-    return { ...g, id };
-  });
+  const goals = (d.goals || [])
+    .filter((g) => !g?.id || !deletedSet.has(g.id))
+    .map((g) => {
+      let id = g?.id;
+      if (!id || typeof id !== "string" || id === "undefined" || seenGoals.has(id)) {
+        id = uid();
+      }
+      seenGoals.add(id);
+      return {
+        ...g,
+        id,
+        status: g.status || "aktif",
+        progress: typeof g.progress === "number" ? g.progress : 0,
+      };
+    });
+
+  const sholatGoal = goals.find((g) => (g.title || "").toLowerCase().includes("sholat"));
 
   const seenSteps = new Set<string>();
-  const steps = (d.steps || []).map((s) => {
-    let id = s?.id;
+  const stepsDedup = new Map<string, GoalStep>();
+  for (const rawStep of d.steps || []) {
+    if (rawStep?.id && deletedSet.has(rawStep.id)) continue;
+    let id = rawStep?.id;
     if (!id || typeof id !== "string" || id === "undefined" || seenSteps.has(id)) {
       id = uid();
     }
     seenSteps.add(id);
-    return { ...s, id };
-  });
+
+    let goalId = rawStep.goal_id;
+    if (!seenGoals.has(goalId)) {
+      if (
+        sholatGoal &&
+        (goalId === "zzvuqkj464bn" ||
+          goalId === "ibcy1gsk9045" ||
+          (rawStep.title || "").toLowerCase().includes("sholat") ||
+          (rawStep.title || "").toLowerCase().includes("masjid"))
+      ) {
+        goalId = sholatGoal.id;
+      } else if (goals.length === 1) {
+        goalId = goals[0].id;
+      }
+    }
+
+    const stepItem: GoalStep = { ...rawStep, id, goal_id: goalId };
+    const stepKey = `${goalId}::${(rawStep.title || "").trim().toLowerCase()}`;
+    const existingStep = stepsDedup.get(stepKey);
+    if (!existingStep) {
+      stepsDedup.set(stepKey, stepItem);
+    } else {
+      stepsDedup.set(stepKey, {
+        ...existingStep,
+        ...stepItem,
+        is_done: Boolean(existingStep.is_done || stepItem.is_done),
+      });
+    }
+  }
+  const steps = Array.from(stepsDedup.values());
 
   const seenTx = new Set<string>();
-  const transactions = (d.transactions || []).map((t) => {
-    let id = t?.id;
-    if (!id || typeof id !== "string" || id === "undefined" || seenTx.has(id)) {
-      id = uid();
-    }
-    seenTx.add(id);
-    return { ...t, id };
-  });
+  const transactions = (d.transactions || [])
+    .filter((t) => !t?.id || !deletedSet.has(t.id))
+    .map((t) => {
+      let id = t?.id;
+      if (!id || typeof id !== "string" || id === "undefined" || seenTx.has(id)) {
+        id = uid();
+      }
+      seenTx.add(id);
+      return { ...t, id };
+    });
 
   const seenWorkouts = new Set<string>();
-  const workouts = (d.workouts || []).map((w) => {
-    let id = w?.id;
-    if (!id || typeof id !== "string" || id === "undefined" || seenWorkouts.has(id)) {
-      id = uid();
-    }
-    seenWorkouts.add(id);
-    return { ...w, id };
-  });
+  const workouts = (d.workouts || [])
+    .filter((w) => !w?.id || !deletedSet.has(w.id))
+    .map((w) => {
+      let id = w?.id;
+      if (!id || typeof id !== "string" || id === "undefined" || seenWorkouts.has(id)) {
+        id = uid();
+      }
+      seenWorkouts.add(id);
+      return { ...w, id };
+    });
 
   const seenCalories = new Set<string>();
-  const calories = (d.calories || []).map((c) => {
-    let id = c?.id;
-    if (!id || typeof id !== "string" || id === "undefined" || seenCalories.has(id)) {
-      id = uid();
-    }
-    seenCalories.add(id);
-    return { ...c, id };
-  });
+  const calories = (d.calories || [])
+    .filter((c) => !c?.id || !deletedSet.has(c.id))
+    .map((c) => {
+      let id = c?.id;
+      if (!id || typeof id !== "string" || id === "undefined" || seenCalories.has(id)) {
+        id = uid();
+      }
+      seenCalories.add(id);
+      return { ...c, id };
+    });
 
   const seenWeights = new Set<string>();
-  const weights = (d.weights || []).map((w) => {
-    let id = w?.id;
-    if (!id || typeof id !== "string" || id === "undefined" || seenWeights.has(id)) {
-      id = uid();
-    }
-    seenWeights.add(id);
-    return { ...w, id };
-  });
+  const weights = (d.weights || [])
+    .filter((w) => !w?.id || !deletedSet.has(w.id))
+    .map((w) => {
+      let id = w?.id;
+      if (!id || typeof id !== "string" || id === "undefined" || seenWeights.has(id)) {
+        id = uid();
+      }
+      seenWeights.add(id);
+      return { ...w, id };
+    });
 
   const seenWater = new Set<string>();
-  const waterLogs = (d.waterLogs || []).map((w) => {
-    let id = w?.id;
-    if (!id || typeof id !== "string" || id === "undefined" || seenWater.has(id)) {
-      id = uid();
-    }
-    seenWater.add(id);
-    return { ...w, id };
-  });
+  const waterLogs = (d.waterLogs || [])
+    .filter((w) => !w?.id || !deletedSet.has(w.id))
+    .map((w) => {
+      let id = w?.id;
+      if (!id || typeof id !== "string" || id === "undefined" || seenWater.has(id)) {
+        id = uid();
+      }
+      seenWater.add(id);
+      return { ...w, id };
+    });
 
   const fitnessProfile: FitnessProfile = d.fitnessProfile || {
     target_calories: 2000,
@@ -130,6 +186,40 @@ export const sanitizeData = (d: AppData): AppData => {
     daily_water_target_ml: 2000,
     weekly_workout_target_minutes: 150,
   };
+
+  const seenProjects = new Set<string>();
+  const projects = (d.projects || [])
+    .filter((p) => !p?.id || !deletedSet.has(p.id))
+    .map((p) => {
+      let id = p?.id;
+      if (!id || typeof id !== "string" || id === "undefined" || seenProjects.has(id)) {
+        id = uid();
+      }
+      seenProjects.add(id);
+      return {
+        ...p,
+        id,
+        status: p.status || "aktif",
+        category: p.category || "Pribadi",
+      };
+    });
+
+  const seenProjectTasks = new Set<string>();
+  const projectTasks = (d.projectTasks || [])
+    .filter((pt) => !pt?.id || !deletedSet.has(pt.id))
+    .map((pt) => {
+      let id = pt?.id;
+      if (!id || typeof id !== "string" || id === "undefined" || seenProjectTasks.has(id)) {
+        id = uid();
+      }
+      seenProjectTasks.add(id);
+      return {
+        ...pt,
+        id,
+        status: pt.status || (pt.is_done ? "selesai" : "todo"),
+        priority: pt.priority || "sedang",
+      };
+    });
 
   return {
     ...d,
@@ -143,7 +233,85 @@ export const sanitizeData = (d: AppData): AppData => {
     weights,
     waterLogs,
     fitnessProfile,
+    projects,
+    projectTasks,
+    deleted_ids: Array.from(deletedSet).slice(-500),
   };
+};
+
+/** Menggabungkan data lokal & cloud secara non-destruktif agar tidak ada data yang ter-reset */
+export const mergeAppData = (local: AppData, cloud: AppData): AppData => {
+  const deletedIds = Array.from(
+    new Set([
+      ...(Array.isArray(local.deleted_ids) ? local.deleted_ids : []),
+      ...(Array.isArray(cloud.deleted_ids) ? cloud.deleted_ids : []),
+    ])
+  ).slice(-500);
+  const deletedSet = new Set<string>(deletedIds);
+
+  const mergeList = <T extends { id: string }>(cloudArr: T[] = [], localArr: T[] = []): T[] => {
+    const map = new Map<string, T>();
+    for (const item of cloudArr) {
+      if (item && item.id && typeof item.id === "string" && item.id !== "undefined" && !deletedSet.has(item.id)) {
+        map.set(item.id, item);
+      }
+    }
+    for (const item of localArr) {
+      if (item && item.id && typeof item.id === "string" && item.id !== "undefined" && !deletedSet.has(item.id)) {
+        const prev = map.get(item.id);
+        map.set(item.id, prev ? { ...prev, ...item } : item);
+      }
+    }
+    return Array.from(map.values());
+  };
+
+  // Untuk goals, gabungkan berdasarkan ID maupun kesamaan judul agar tidak duplikat namun progres tertinggi terjaga
+  const combinedGoals = mergeList(cloud.goals || [], local.goals || []);
+  const goalsByTitle = new Map<string, Goal>();
+  for (const g of combinedGoals) {
+    const key = (g.title || "").trim().toLowerCase() || g.id;
+    const prev = goalsByTitle.get(key);
+    if (!prev) {
+      goalsByTitle.set(key, g);
+    } else {
+      goalsByTitle.set(key, {
+        ...prev,
+        ...g,
+        id: prev.id || g.id,
+        progress: Math.max(Number(prev.progress || 0), Number(g.progress || 0)),
+      });
+    }
+  }
+
+  return sanitizeData({
+    ...emptyData(),
+    ...cloud,
+    ...local,
+    user: local.user || cloud.user,
+    lastUser: local.lastUser || cloud.lastUser,
+    prefs: { ...local.prefs, ...(cloud.prefs || {}) },
+    goals: Array.from(goalsByTitle.values()),
+    steps: mergeList(cloud.steps || [], local.steps || []),
+    habits: mergeList(cloud.habits || [], local.habits || []),
+    habitLogs: mergeList(cloud.habitLogs || [], local.habitLogs || []),
+    schedules: mergeList(cloud.schedules || [], local.schedules || []),
+    categories: mergeList(cloud.categories || [], local.categories || []),
+    transactions: mergeList(cloud.transactions || [], local.transactions || []),
+    reminders: mergeList(cloud.reminders || [], local.reminders || []).slice(0, 200),
+    reflections: mergeList(cloud.reflections || [], local.reflections || []),
+    workouts: mergeList(cloud.workouts || [], local.workouts || []),
+    calories: mergeList(cloud.calories || [], local.calories || []),
+    weights: mergeList(cloud.weights || [], local.weights || []),
+    waterLogs: mergeList(cloud.waterLogs || [], local.waterLogs || []),
+    fitnessProfile: {
+      ...(cloud.fitnessProfile || {}),
+      ...(local.fitnessProfile || {}),
+    } as FitnessProfile,
+    projects: mergeList(cloud.projects || [], local.projects || []),
+    projectTasks: mergeList(cloud.projectTasks || [], local.projectTasks || []),
+    deleted_ids: deletedIds,
+    updated_at: new Date().toISOString(),
+  });
 };
 
 const load = (): AppData => {
@@ -163,7 +331,7 @@ const save = (d: AppData) => {
   }
 };
 
-export type View = "beranda" | "tujuan" | "kebiasaan" | "jadwal" | "keuangan" | "kebugaran" | "pengingat" | "evaluasi" | "pengaturan";
+export type View = "beranda" | "tujuan" | "proyek" | "kebiasaan" | "jadwal" | "keuangan" | "kebugaran" | "pengingat" | "evaluasi" | "pengaturan";
 export type QuickKind = "agenda" | "kebiasaan" | "transaksi" | "tujuan" | null;
 export type CloudSyncStatus = "unconfigured" | "idle" | "syncing" | "synced" | "error";
 
@@ -196,6 +364,7 @@ const useStoreValue = () => {
   const dataRef = useRef(data);
   dataRef.current = data;
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialCloudSyncDoneRef = useRef(false);
 
   // Simpan lokal selalu
   useEffect(() => {
@@ -211,7 +380,14 @@ const useStoreValue = () => {
     else el.removeAttribute("data-theme");
   }, [data.prefs.theme]);
 
-  const update = useCallback((fn: (d: AppData) => AppData) => setData((d) => fn(d)), []);
+  const update = useCallback(
+    (fn: (d: AppData) => AppData) =>
+      setData((d) => {
+        const next = fn(d);
+        return { ...next, updated_at: new Date().toISOString() };
+      }),
+    []
+  );
 
   const toast = useCallback((text: string, undo?: () => void) => {
     const id = uid();
@@ -221,10 +397,15 @@ const useStoreValue = () => {
 
   const dismissToast = (id: string) => setToasts((t) => t.filter((x) => x.id !== id));
 
-  // ---- Sinkronisasi Cloud Otomatis (Debounced) ----
+  // ---- Sinkronisasi Cloud Otomatis (Debounced & Terlindungi dari Race Condition Awal) ----
   useEffect(() => {
     if (!data.user?.email || !isAnyCloudConfigured()) {
       if (!isAnyCloudConfigured()) setCloudStatus("unconfigured");
+      return;
+    }
+
+    // Jangan menimpa Cloud sebelum penarikan & penggabungan data awal selesai!
+    if (!initialCloudSyncDoneRef.current) {
       return;
     }
 
@@ -243,29 +424,73 @@ const useStoreValue = () => {
         setCloudStatus("error");
         setCloudError(res.error || "Gagal sinkron");
       }
-    }, 1800);
+    }, 600);
 
     return () => {
       if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
     };
   }, [data]);
 
-  // Tarik data cloud awal jika user sudah ada dan cloud aktif
+  // Flush sinkronisasi segera saat tab ditutup / diminimize di HP
   useEffect(() => {
-    // Cek koneksi serverless Turso (Vercel Integration)
+    const flushSync = () => {
+      if (
+        document.visibilityState === "hidden" &&
+        initialCloudSyncDoneRef.current &&
+        dataRef.current.user?.email &&
+        isAnyCloudConfigured()
+      ) {
+        if (syncTimeoutRef.current) {
+          clearTimeout(syncTimeoutRef.current);
+          syncTimeoutRef.current = null;
+        }
+        syncAppDataToCloud(dataRef.current.user.email, dataRef.current);
+      }
+    };
+    window.addEventListener("visibilitychange", flushSync);
+    window.addEventListener("pagehide", flushSync);
+    return () => {
+      window.removeEventListener("visibilitychange", flushSync);
+      window.removeEventListener("pagehide", flushSync);
+    };
+  }, []);
+
+  // Tarik & gabungkan data cloud awal tanpa pernah mereset data lokal maupun cloud
+  useEffect(() => {
     checkTursoServerlessStatus().then((tursoServerlessActive) => {
       if (tursoServerlessActive) {
         setCloudStatus((prev) => (prev === "unconfigured" ? "idle" : prev));
       }
 
-      if (data.user?.email && (isAnyCloudConfigured() || tursoServerlessActive)) {
-        fetchAppDataFromCloud(data.user.email).then((res) => {
-          if (res.success && res.data) {
-            setData((curr) => sanitizeData({ ...curr, ...res.data }));
-            setCloudStatus("synced");
-            setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
-          }
-        });
+      const email = dataRef.current.user?.email;
+      if (email && (isAnyCloudConfigured() || tursoServerlessActive)) {
+        setCloudStatus("syncing");
+        fetchAppDataFromCloud(email)
+          .then((res) => {
+            if (res.success && res.data) {
+              const merged = mergeAppData(dataRef.current, res.data);
+              setData(merged);
+              initialCloudSyncDoneRef.current = true;
+              setCloudStatus("synced");
+              setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
+              // Simpan hasil merge yang sudah utuh kembali ke cloud
+              syncAppDataToCloud(email, merged);
+            } else {
+              initialCloudSyncDoneRef.current = true;
+              // Jika belum ada di cloud, dorong data lokal saat ini
+              syncAppDataToCloud(email, dataRef.current).then((sr) => {
+                if (sr.success) {
+                  setCloudStatus("synced");
+                  setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
+                }
+              });
+            }
+          })
+          .catch(() => {
+            initialCloudSyncDoneRef.current = true;
+          });
+      } else {
+        initialCloudSyncDoneRef.current = true;
       }
     });
   }, []);
@@ -399,10 +624,10 @@ const useStoreValue = () => {
     setCloudStatus("syncing");
     const res = await fetchAppDataFromCloud(cur.user.email);
     if (res.success && res.data) {
-      setData((c) => sanitizeData({ ...c, ...res.data }));
+      setData((c) => mergeAppData(c, res.data!));
       setCloudStatus("synced");
       setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
-      toast("Data terbaru berhasil diunduh dari Cloud!");
+      toast("Data terbaru berhasil disinkronkan dari Cloud!");
       return true;
     } else {
       setCloudStatus("error");
@@ -562,12 +787,13 @@ const useStoreValue = () => {
           setCloudStatus("syncing");
           const cloudRes = await fetchAppDataFromCloud(cleanEmail);
           if (cloudRes.success && cloudRes.data) {
-            const cleanData = sanitizeData(cloudRes.data);
-            setData((curr) => ({
-              ...curr,
-              ...cleanData,
-              user: cleanData.user || { id: uid(), name: cleanEmail.split("@")[0], email: cleanEmail, created_at: new Date().toISOString() },
-            }));
+            setData((curr) => {
+              const merged = mergeAppData(curr, cloudRes.data!);
+              return {
+                ...merged,
+                user: merged.user || { id: uid(), name: cleanEmail.split("@")[0], email: cleanEmail, created_at: new Date().toISOString() },
+              };
+            });
             setCloudStatus("synced");
             setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
             toast("Data Anda berhasil dimuat dari Cloud!");
@@ -597,12 +823,18 @@ const useStoreValue = () => {
         const done = isDone(dataRef.current, h.id, day);
         const willBeDone = !done;
 
-        update((d) => ({
-          ...d,
-          habitLogs: done
-            ? d.habitLogs.filter((l) => !(l.habit_id === h.id && l.log_date === day))
-            : [...d.habitLogs, { id: uid(), habit_id: h.id, log_date: day, is_done: true }],
-        }));
+        update((d) => {
+          const removedIds = done
+            ? d.habitLogs.filter((l) => l.habit_id === h.id && l.log_date === day).map((l) => l.id)
+            : [];
+          return {
+            ...d,
+            deleted_ids: removedIds.length ? [...(d.deleted_ids || []), ...removedIds] : d.deleted_ids,
+            habitLogs: done
+              ? d.habitLogs.filter((l) => !(l.habit_id === h.id && l.log_date === day))
+              : [...d.habitLogs, { id: uid(), habit_id: h.id, log_date: day, is_done: true }],
+          };
+        });
 
         if (willBeDone) {
           // Hitung streak baru secara akurat dengan menyertakan log hari ini
@@ -664,11 +896,15 @@ const useStoreValue = () => {
         }),
       deleteHabit: (id: string) => {
         if (!id || id === "undefined") return;
-        update((d) => ({
-          ...d,
-          habits: d.habits.filter((h) => h.id !== id),
-          habitLogs: d.habitLogs.filter((l) => l.habit_id !== id),
-        }));
+        update((d) => {
+          const logIds = d.habitLogs.filter((l) => l.habit_id === id).map((l) => l.id);
+          return {
+            ...d,
+            deleted_ids: [...(d.deleted_ids || []), id, ...logIds],
+            habits: d.habits.filter((h) => h.id !== id),
+            habitLogs: d.habitLogs.filter((l) => l.habit_id !== id),
+          };
+        });
       },
 
       saveSchedule: (s: Partial<Schedule> & { title: string; start_at: string }) =>
@@ -734,7 +970,11 @@ const useStoreValue = () => {
         })),
       deleteSchedule: (id: string) => {
         if (!id || id === "undefined") return;
-        update((d) => ({ ...d, schedules: d.schedules.filter((s) => s.id !== id) }));
+        update((d) => ({
+          ...d,
+          deleted_ids: [...(d.deleted_ids || []), id],
+          schedules: d.schedules.filter((s) => s.id !== id),
+        }));
       },
 
       saveGoal: (g: Partial<Goal> & { title: string }, stepTitles?: string[]) =>
@@ -777,11 +1017,15 @@ const useStoreValue = () => {
         })),
       deleteGoal: (id: string) => {
         if (!id || id === "undefined") return;
-        update((d) => ({
-          ...d,
-          goals: d.goals.filter((g) => g.id !== id),
-          steps: d.steps.filter((s) => s.goal_id !== id),
-        }));
+        update((d) => {
+          const stepIds = d.steps.filter((s) => s.goal_id === id).map((s) => s.id);
+          return {
+            ...d,
+            deleted_ids: [...(d.deleted_ids || []), id, ...stepIds],
+            goals: d.goals.filter((g) => g.id !== id),
+            steps: d.steps.filter((s) => s.goal_id !== id),
+          };
+        });
       },
       addStep: (goalId: string, title: string) =>
         update((d) => ({ ...d, steps: [...d.steps, { id: uid(), goal_id: goalId, title, is_done: false, order_index: d.steps.length }] })),
@@ -792,19 +1036,160 @@ const useStoreValue = () => {
         })),
       deleteStep: (id: string) => {
         if (!id || id === "undefined") return;
-        update((d) => ({ ...d, steps: d.steps.filter((s) => s.id !== id) }));
+        update((d) => ({
+          ...d,
+          deleted_ids: [...(d.deleted_ids || []), id],
+          steps: d.steps.filter((s) => s.id !== id),
+        }));
+      },
+
+      // ---- Aksi To-Do Project & Task ----
+      saveProject: (p: Partial<Project> & { name: string }, initialTasks?: string[]) =>
+        update((d) => {
+          const validId = p.id && typeof p.id === "string" && p.id !== "undefined" ? p.id : null;
+          if (validId) {
+            return {
+              ...d,
+              projects: (d.projects || []).map((x) => (x.id === validId ? ({ ...x, ...p, id: validId } as Project) : x)),
+            };
+          }
+          const id = uid();
+          const cleanP = { ...p };
+          delete cleanP.id;
+          const nowIso = new Date().toISOString();
+          const project: Project = {
+            description: "",
+            category: "Kerja",
+            status: "aktif",
+            icon: "🚀",
+            color: "sky",
+            created_at: nowIso,
+            ...cleanP,
+            id,
+          };
+          const newTasks: ProjectTask[] = (initialTasks || [])
+            .map((t) => t.trim())
+            .filter(Boolean)
+            .map((title, idx) => ({
+              id: uid(),
+              project_id: id,
+              title,
+              priority: "sedang" as TaskPriority,
+              status: "todo",
+              is_done: false,
+              order_index: idx,
+              created_at: nowIso,
+            }));
+          return {
+            ...d,
+            projects: [project, ...(d.projects || [])],
+            projectTasks: [...(d.projectTasks || []), ...newTasks],
+          };
+        }),
+      setProjectStatus: (id: string, status: ProjectStatus) =>
+        update((d) => ({
+          ...d,
+          projects: (d.projects || []).map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  status,
+                  completed_at: status === "selesai" ? new Date().toISOString() : p.completed_at,
+                }
+              : p
+          ),
+        })),
+      deleteProject: (id: string) => {
+        if (!id || id === "undefined") return;
+        update((d) => {
+          const taskIds = (d.projectTasks || []).filter((t) => t.project_id === id).map((t) => t.id);
+          return {
+            ...d,
+            deleted_ids: [...(d.deleted_ids || []), id, ...taskIds],
+            projects: (d.projects || []).filter((p) => p.id !== id),
+            projectTasks: (d.projectTasks || []).filter((t) => t.project_id !== id),
+          };
+        });
+      },
+      addProjectTask: (
+        projectId: string,
+        task: { title: string; priority?: TaskPriority; due_date?: string; notes?: string }
+      ) => {
+        if (!task.title.trim()) return;
+        const nowIso = new Date().toISOString();
+        update((d) => ({
+          ...d,
+          projectTasks: [
+            ...(d.projectTasks || []),
+            {
+              id: uid(),
+              project_id: projectId,
+              title: task.title.trim(),
+              notes: task.notes,
+              priority: task.priority || "sedang",
+              status: "todo",
+              is_done: false,
+              due_date: task.due_date,
+              order_index: (d.projectTasks || []).length,
+              created_at: nowIso,
+            },
+          ],
+        }));
+      },
+      updateProjectTask: (id: string, patch: Partial<ProjectTask>) =>
+        update((d) => ({
+          ...d,
+          projectTasks: (d.projectTasks || []).map((t) => {
+            if (t.id !== id) return t;
+            const next = { ...t, ...patch };
+            if (patch.status !== undefined) {
+              next.is_done = patch.status === "selesai";
+              next.completed_at = next.is_done ? new Date().toISOString() : undefined;
+            }
+            return next;
+          }),
+        })),
+      toggleProjectTask: (id: string) =>
+        update((d) => ({
+          ...d,
+          projectTasks: (d.projectTasks || []).map((t) => {
+            if (t.id !== id) return t;
+            const nextDone = !t.is_done;
+            return {
+              ...t,
+              is_done: nextDone,
+              status: nextDone ? "selesai" : "todo",
+              completed_at: nextDone ? new Date().toISOString() : undefined,
+            };
+          }),
+        })),
+      deleteProjectTask: (id: string) => {
+        if (!id || id === "undefined") return;
+        update((d) => ({
+          ...d,
+          deleted_ids: [...(d.deleted_ids || []), id],
+          projectTasks: (d.projectTasks || []).filter((t) => t.id !== id),
+        }));
       },
 
       addTransaction: (t: Omit<Transaction, "id">) => {
         const id = uid();
         update((d) => ({ ...d, transactions: [...d.transactions, { ...t, id }] }));
         toast(t.type === "pemasukan" ? "Pemasukan tercatat." : "Pengeluaran tercatat.", () =>
-          update((d) => ({ ...d, transactions: d.transactions.filter((x) => x.id !== id) }))
+          update((d) => ({
+            ...d,
+            deleted_ids: [...(d.deleted_ids || []), id],
+            transactions: d.transactions.filter((x) => x.id !== id),
+          }))
         );
       },
       deleteTransaction: (id: string) => {
         if (!id || id === "undefined") return;
-        update((d) => ({ ...d, transactions: d.transactions.filter((t) => t.id !== id) }));
+        update((d) => ({
+          ...d,
+          deleted_ids: [...(d.deleted_ids || []), id],
+          transactions: d.transactions.filter((t) => t.id !== id),
+        }));
       },
       addCategory: (c: Omit<Category, "id">) => update((d) => ({ ...d, categories: [...d.categories, { ...c, id: uid() }] })),
 
@@ -822,6 +1207,7 @@ const useStoreValue = () => {
         if (!id || id === "undefined") return;
         update((d) => ({
           ...d,
+          deleted_ids: [...(d.deleted_ids || []), id],
           workouts: (d.workouts || []).filter((w) => w.id !== id),
         }));
       },
@@ -838,6 +1224,7 @@ const useStoreValue = () => {
         if (!id || id === "undefined") return;
         update((d) => ({
           ...d,
+          deleted_ids: [...(d.deleted_ids || []), id],
           calories: (d.calories || []).filter((c) => c.id !== id),
         }));
       },
@@ -857,6 +1244,7 @@ const useStoreValue = () => {
         if (!id || id === "undefined") return;
         update((d) => ({
           ...d,
+          deleted_ids: [...(d.deleted_ids || []), id],
           weights: (d.weights || []).filter((w) => w.id !== id),
         }));
       },
@@ -873,6 +1261,7 @@ const useStoreValue = () => {
         if (!id || id === "undefined") return;
         update((d) => ({
           ...d,
+          deleted_ids: [...(d.deleted_ids || []), id],
           waterLogs: (d.waterLogs || []).filter((w) => w.id !== id),
         }));
       },

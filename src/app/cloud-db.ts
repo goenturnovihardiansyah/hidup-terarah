@@ -5,7 +5,6 @@ import {
   fetchDataFromCloud as fetchSupabase,
 } from "./supabase";
 import {
-  isTursoConfigured,
   syncTursoData,
   fetchTursoData,
 } from "./turso";
@@ -34,30 +33,29 @@ export const getCloudSettings = (): CloudSettings => {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.provider) return parsed;
+      // Jika provider sebelumnya adalah supabase/vercel_kv sementara Turso serverless aktif, utamakan Turso
+      if (parsed.provider === "upstash" && parsed.upstash?.url && parsed.upstash?.token) {
+        return parsed;
+      }
+      if (parsed.provider === "pantry" && parsed.pantry?.pantryId) {
+        return parsed;
+      }
+      if (parsed.provider === "turso") {
+        return parsed;
+      }
     }
   } catch {
     /* abaikan */
   }
 
-  // Jika Turso sudah terkonfigurasi (lokal atau env)
-  if (isTursoConfigured()) {
-    return { provider: "turso" };
-  }
-
-  // Jika sebelumnya sudah ada config Supabase
-  if (getSupabaseConfig()) {
-    return { provider: "supabase" };
-  }
-
-  // Default provider rekomendasi: Turso (100% Gratis Selamanya & Anti-Pause)
+  // Default provider utama: Turso (100% Gratis Selamanya & Terhubung via Vercel Serverless)
   return { provider: "turso" };
 };
 
 export const isAnyCloudConfigured = (): boolean => {
   const cfg = getCloudSettings();
   if (cfg.provider === "turso") {
-    return isTursoConfigured() || localStorage.getItem("hidup-terarah:turso-serverless-active") === "1";
+    return true; // Selalu aktif melalui Turso Serverless (/api/sync) maupun kredensial lokal
   }
   if (cfg.provider === "vercel_kv") {
     return true; // Dicoba via /api/sync

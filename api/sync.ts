@@ -4,6 +4,118 @@ export const config = {
   runtime: "edge",
 };
 
+type AnyObj = Record<string, any>;
+
+function mergeById(existingArr: AnyObj[] = [], incomingArr: AnyObj[] = [], deletedSet: Set<string>): AnyObj[] {
+  const map = new Map<string, AnyObj>();
+  for (const item of existingArr) {
+    if (item && item.id && typeof item.id === "string" && item.id !== "undefined" && !deletedSet.has(item.id)) {
+      map.set(item.id, item);
+    }
+  }
+  for (const item of incomingArr) {
+    if (item && item.id && typeof item.id === "string" && item.id !== "undefined" && !deletedSet.has(item.id)) {
+      const prev = map.get(item.id);
+      map.set(item.id, prev ? { ...prev, ...item } : item);
+    }
+  }
+  return Array.from(map.values());
+}
+
+function healAndMergeData(existing: AnyObj | null, incoming: AnyObj): AnyObj {
+  if (!existing || typeof existing !== "object") {
+    return incoming;
+  }
+
+  const deletedIds = Array.from(
+    new Set([
+      ...(Array.isArray(existing.deleted_ids) ? existing.deleted_ids : []),
+      ...(Array.isArray(incoming.deleted_ids) ? incoming.deleted_ids : []),
+    ])
+  ).slice(-500);
+  const deletedSet = new Set<string>(deletedIds);
+
+  // Merge goals: deduplicate by id or normalized title
+  const rawGoals = mergeById(existing.goals, incoming.goals, deletedSet);
+  const goalsByTitle = new Map<string, AnyObj>();
+  for (const g of rawGoals) {
+    const key = (g.title || "").trim().toLowerCase() || g.id;
+    const prev = goalsByTitle.get(key);
+    if (!prev) {
+      goalsByTitle.set(key, g);
+    } else {
+      // Pilih ID yang sudah ada di incoming atau pertahankan progres tertinggi
+      goalsByTitle.set(key, {
+        ...prev,
+        ...g,
+        id: prev.id || g.id,
+        progress: Math.max(Number(prev.progress || 0), Number(g.progress || 0)),
+      });
+    }
+  }
+  const goals = Array.from(goalsByTitle.values());
+  const goalIdSet = new Set(goals.map((g) => g.id));
+  const sholatGoal = goals.find((g) => (g.title || "").toLowerCase().includes("sholat"));
+
+  // Merge steps & heal orphaned goal_id
+  const rawSteps = mergeById(existing.steps, incoming.steps, deletedSet);
+  const stepsDedup = new Map<string, AnyObj>();
+  for (const s of rawSteps) {
+    let goalId = s.goal_id;
+    if (!goalIdSet.has(goalId)) {
+      if (
+        sholatGoal &&
+        (goalId === "zzvuqkj464bn" ||
+          goalId === "ibcy1gsk9045" ||
+          (s.title || "").toLowerCase().includes("sholat") ||
+          (s.title || "").toLowerCase().includes("masjid"))
+      ) {
+        goalId = sholatGoal.id;
+      } else if (goals.length === 1) {
+        goalId = goals[0].id;
+      }
+    }
+    const fixedStep = { ...s, goal_id: goalId };
+    const stepKey = `${goalId}::${(s.title || "").trim().toLowerCase()}`;
+    const prev = stepsDedup.get(stepKey);
+    if (!prev) {
+      stepsDedup.set(stepKey, fixedStep);
+    } else {
+      stepsDedup.set(stepKey, {
+        ...prev,
+        ...fixedStep,
+        is_done: Boolean(prev.is_done || fixedStep.is_done),
+      });
+    }
+  }
+  const steps = Array.from(stepsDedup.values());
+
+  return {
+    ...existing,
+    ...incoming,
+    user: incoming.user || existing.user,
+    prefs: { ...(existing.prefs || {}), ...(incoming.prefs || {}) },
+    goals,
+    steps,
+    habits: mergeById(existing.habits, incoming.habits, deletedSet),
+    habitLogs: mergeById(existing.habitLogs, incoming.habitLogs, deletedSet),
+    schedules: mergeById(existing.schedules, incoming.schedules, deletedSet),
+    categories: mergeById(existing.categories, incoming.categories, deletedSet),
+    transactions: mergeById(existing.transactions, incoming.transactions, deletedSet),
+    reminders: mergeById(existing.reminders, incoming.reminders, deletedSet).slice(0, 200),
+    reflections: mergeById(existing.reflections, incoming.reflections, deletedSet),
+    workouts: mergeById(existing.workouts, incoming.workouts, deletedSet),
+    calories: mergeById(existing.calories, incoming.calories, deletedSet),
+    weights: mergeById(existing.weights, incoming.weights, deletedSet),
+    waterLogs: mergeById(existing.waterLogs, incoming.waterLogs, deletedSet),
+    fitnessProfile: { ...(existing.fitnessProfile || {}), ...(incoming.fitnessProfile || {}) },
+    projects: mergeById(existing.projects, incoming.projects, deletedSet),
+    projectTasks: mergeById(existing.projectTasks, incoming.projectTasks, deletedSet),
+    deleted_ids: deletedIds,
+    updated_at: new Date().toISOString(),
+  };
+}
+
 export default async function handler(req: Request) {
   const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
@@ -85,7 +197,8 @@ export default async function handler(req: Request) {
         }
 
         const raw = res.rows[0].app_data;
-        const payload = typeof raw === "string" ? JSON.parse(raw) : raw;
+        const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+        const payload = healAndMergeData(parsed, parsed);
         return new Response(JSON.stringify({ success: true, data: payload, provider: "turso" }), {
           status: 200,
           headers: corsHeaders,
@@ -104,7 +217,27 @@ export default async function handler(req: Request) {
           });
         }
 
-        const payload = JSON.stringify(data);
+        const cleanEmail = email.trim().toLowerCase();
+
+        // Ambil data sebelumnya di Turso untuk digabung secara aman (anti-reset)
+        let mergedData = data;
+        try {
+          const existingRes = await client.execute({
+            sql: `SELECT app_data FROM hidup_terarah_app_data WHERE user_email = ? LIMIT 1`,
+            args: [cleanEmail],
+          });
+          if (existingRes.rows.length > 0) {
+            const rawExisting = existingRes.rows[0].app_data;
+            const parsedExisting = typeof rawExisting === "string" ? JSON.parse(rawExisting) : rawExisting;
+            mergedData = healAndMergeData(parsedExisting, data);
+          } else {
+            mergedData = healAndMergeData(data, data);
+          }
+        } catch {
+          mergedData = data;
+        }
+
+        const payload = JSON.stringify(mergedData);
         const now = new Date().toISOString();
 
         await client.execute({
@@ -115,10 +248,10 @@ export default async function handler(req: Request) {
               app_data = excluded.app_data,
               updated_at = excluded.updated_at
           `,
-          args: [email.trim().toLowerCase(), payload, now],
+          args: [cleanEmail, payload, now],
         });
 
-        return new Response(JSON.stringify({ success: true, provider: "turso" }), {
+        return new Response(JSON.stringify({ success: true, provider: "turso", data: mergedData }), {
           status: 200,
           headers: corsHeaders,
         });
