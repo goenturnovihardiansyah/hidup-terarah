@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hidup Terarah - Portfolio Showcase Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            display: ['Playfair Display', 'serif'],
+            heading: ['Outfit', 'sans-serif'],
+          },
+          colors: {
+            brand: '#5B4FCF',
+            coral: '#F06A55',
+            surface: '#FFFCF8',
+            surface2: '#FAF4EE',
+            ink: '#1E2242',
+            ink2: '#3D4166',
+            mute: '#7C7F98',
+            line: '#EDE3D9',
+            emerald: { 500: '#10B981', 100: '#D1FAE5' },
+            amber: { 500: '#F59E0B', 100: '#FEF3C7' },
+            violet: { 500: '#8B5CF6', 100: '#EDE9FE' },
+            rose: { 500: '#F43F5E', 100: '#FFE4E6' },
+            sky: { 500: '#0EA5E9', 100: '#E0F2FE' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #F6F2EB;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(240, 106, 85, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(91, 79, 207, 0.08) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(224, 162, 27, 0.07) 0px, transparent 50%);
+      color: #1E2242;
+      overflow-x: hidden;
+    }
+    .macbook-chassis {
+      background: linear-gradient(180deg, #2D3035 0%, #1A1C1E 100%);
+      box-shadow: 
+        0 40px 100px -20px rgba(30, 34, 66, 0.28),
+        0 20px 40px -15px rgba(0, 0, 0, 0.35),
+        inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    }
+    .macbook-screen-bezel {
+      background: #0E0F11;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    .macbook-base {
+      background: linear-gradient(180deg, #3A3D43 0%, #202226 100%);
+      box-shadow: 
+        0 30px 60px -10px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+    .macbook-notch {
+      background: #0E0F11;
+      border-bottom-left-radius: 6px;
+      border-bottom-right-radius: 6px;
+    }
+    .iphone-chassis {
+      background: linear-gradient(145deg, #4A4642 0%, #252422 100%);
+      box-shadow: 
+        0 35px 80px -15px rgba(25, 26, 40, 0.38),
+        0 15px 30px -10px rgba(0, 0, 0, 0.3),
+        inset 0 1px 2px rgba(255, 255, 255, 0.3),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.5);
+    }
+    .dynamic-island {
+      background: #000000;
+      box-shadow: inset 0 0 1px rgba(255, 255, 255, 0.15);
+    }
+    .glass-pill {
+      background: rgba(255, 252, 248, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(237, 227, 217, 0.8);
+      box-shadow: 0 8px 24px -6px rgba(60, 40, 30, 0.08);
+    }
+    .card-double-bezel {
+      background: #FAF4EE;
+      border: 1px solid #EDE3D9;
+      padding: 6px;
+      border-radius: 20px;
+    }
+    .card-inner {
+      background: #FFFCF8;
+      border-radius: 15px;
+      box-shadow: 0 1px 3px rgba(60, 40, 30, 0.03);
+    }
+    .subtle-grid {
+      background-size: 32px 32px;
+      background-image: 
+        linear-gradient(to right, rgba(237, 227, 217, 0.4) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(237, 227, 217, 0.4) 1px, transparent 1px);
+    }
+  </style>
+</head>
+<body class="min-h-screen py-10 px-4 sm:px-8 font-sans selection:bg-brand selection:text-white">
+
+  <!-- TOP HERO BADGE -->
+  <header class="max-w-6xl mx-auto text-center mb-12">
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface border border-line shadow-sm mb-4">
+      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span class="text-xs font-bold tracking-wider uppercase text-ink2">Portfolio Showcase · High-End Visual Design</span>
+    </div>
+    <h1 class="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-ink tracking-tight">
+      Hidup Terarah
+    </h1>
+    <p class="font-heading text-lg sm:text-xl text-ink2 mt-2 font-medium max-w-2xl mx-auto">
+      Personal Life Mastery & Habit Operating System
+    </p>
+    <div class="mt-4 flex flex-wrap justify-center gap-3 text-xs font-semibold text-mute">
+      <span class="px-3 py-1 rounded-full bg-surface border border-line">✦ React 18 + TypeScript</span>
+      <span class="px-3 py-1 rounded-full bg-surface border border-line">✦ Progressive Web App (PWA)</span>
+      <span class="px-3 py-1 rounded-full bg-surface border border-line">✦ Cloud Sync (Turso SQLite)</span>
+      <span class="px-3 py-1 rounded-full bg-surface border border-line">✦ 100% Data Isolation</span>
+    </div>
+  </header>
+
+  <!-- MOCKUP STAGE -->
+  <main class="max-w-[1400px] mx-auto relative pb-20">
+
+    <!-- FLOATING STUDIO BADGES -->
+    <div class="hidden xl:flex absolute -top-4 left-6 z-20 glass-pill px-4 py-2.5 rounded-2xl items-center gap-3">
+      <span class="text-2xl">🔥</span>
+      <div>
+        <p class="text-xs font-bold text-ink leading-tight">21 Hari Runutan</p>
+        <p class="text-[10px] text-mute font-medium">Momentum Terbaik Pekan Ini</p>
+      </div>
+    </div>
+
+    <div class="hidden xl:flex absolute top-24 right-8 z-20 glass-pill px-4 py-2.5 rounded-2xl items-center gap-3">
+      <span class="text-2xl">💎</span>
+      <div>
+        <p class="text-xs font-bold text-ink leading-tight">100% Selesai</p>
+        <p class="text-[10px] text-mute font-medium">8 Kebiasaan Konsisten</p>
+      </div>
+    </div>
+
+    <!-- MAIN COMPOSITION: LAPTOP + PHONE OVERLAP -->
+    <div class="relative flex flex-col items-center justify-center">
+
+      <!-- ============================================== -->
+      <!-- 1. LAPTOP MOCKUP (MacBook Pro 16" Space Black) -->
+      <!-- ============================================== -->
+      <div class="w-full max-w-[1080px] relative z-10 transition-transform hover:scale-[1.01] duration-500">
+        
+        <!-- Screen Outer Lid -->
+        <div class="macbook-chassis p-3 sm:p-4 rounded-[28px] sm:rounded-[32px] border border-white/10 relative">
+          
+          <!-- Screen Glass Bezel -->
+          <div class="macbook-screen-bezel rounded-[20px] sm:rounded-[24px] overflow-hidden relative border border-black/40">
+            
+            <!-- Camera Notch -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-4 macbook-notch z-50 flex items-center justify-center">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#1A2530] ring-1 ring-blue-500/30"></span>
+            </div>
+
+            <!-- LAPTOP SCREEN CONTENT (Full Dashboard with Rich Dummy Data) -->
+            <div class="bg-[#F4EEE7] text-ink text-left w-full h-[540px] sm:h-[620px] overflow-hidden flex flex-col font-sans select-none pointer-events-none">
+              
+              <!-- App Topbar in Screen -->
+              <div class="h-12 border-b border-line bg-surface/90 px-5 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">🧭</span>
+                  <span class="font-display font-bold text-base text-ink">Hidup Terarah</span>
+                  <span class="ml-3 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-500 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Cloud Aktif
+                  </span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="h-8 px-3 rounded-full bg-surface2 border border-line flex items-center gap-2 text-xs text-mute w-64">
+                    <span>🔍</span> Cari agenda, kebiasaan, tujuan...
+                  </div>
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-brand to-rose-500 text-white font-bold text-xs flex items-center justify-center">
+                    FS
+                  </div>
+                </div>
+              </div>
+
+              <!-- Main Dashboard Area (2 Columns) -->
+              <div class="flex-1 p-5 overflow-hidden grid grid-cols-12 gap-4">
+                
+                <!-- Left Column (Nav & Shortcuts) -->
+                <div class="col-span-3 flex flex-col gap-2.5">
+                  <div class="bg-surface rounded-2xl p-3 border border-line flex flex-col gap-1 text-xs font-semibold">
+                    <div class="px-3 py-2 rounded-xl bg-brand/10 text-brand flex items-center gap-2">
+                      <span>🏠</span> Beranda
+                    </div>
+                    <div class="px-3 py-2 rounded-xl text-ink2 flex items-center gap-2 hover:bg-surface2">
+                      <span>🎯</span> Tujuan Hidup
+                    </div>
+                    <div class="px-3 py-2 rounded-xl text-ink2 flex items-center gap-2 hover:bg-surface2">
+                      <span>🌱</span> Kebiasaan Rutin
+                    </div>
+                    <div class="px-3 py-2 rounded-xl text-ink2 flex items-center gap-2 hover:bg-surface2">
+                      <span>🗓️</span> Jadwal & Agenda
+                    </div>
+                    <div class="px-3 py-2 rounded-xl text-ink2 flex items-center gap-2 hover:bg-surface2">
+                      <span>💸</span> Keuangan Sadar
+                    </div>
+                    <div class="px-3 py-2 rounded-xl text-ink2 flex items-center gap-2 hover:bg-surface2">
+                      <span>📊</span> Evaluasi Pekanan
+                    </div>
+                  </div>
+
+                  <!-- Sidebar Reflection Card -->
+                  <div class="mt-auto rounded-2xl bg-gradient-to-br from-[#FFEBDF] to-[#FDE9EE] p-3 border border-line">
+                    <span class="px-2 py-0.5 rounded-full bg-surface/80 text-[9px] font-bold uppercase text-coral">
+                      Refleksi Hari Ini
+                    </span>
+                    <p class="font-display text-xs font-bold text-ink mt-1.5 leading-snug">
+                      “Perjalanan seribu mil selalu dimulai dari satu langkah kecil.”
+                    </p>
+                    <p class="text-[10px] text-mute mt-1 font-medium">— Lao Tzu</p>
+                  </div>
+                </div>
+
+                <!-- Center & Right (Main Content) -->
+                <div class="col-span-9 flex flex-col gap-3.5 overflow-hidden">
+                  
+                  <!-- HERO MOTIVATION BANNER -->
+                  <div class="rounded-2xl bg-gradient-to-r from-[#FDE9EE] via-[#FFEBDF] to-[#FFF4D9] p-4 border border-line relative overflow-hidden flex items-center justify-between">
+                    <div class="max-w-md">
+                      <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-full bg-surface/80 text-[10px] font-bold text-brand uppercase tracking-wider">
+                          💡 Motivasi Hari Ini
+                        </span>
+                        <span class="text-[11px] text-mute">· Minggu, 1 November 2026</span>
+                      </div>
+                      <p class="font-display text-lg font-bold text-ink mt-1.5 leading-snug">
+                        “Perubahan kecil tidak terlihat perbedaannya dalam sehari, tetapi dampaknya berlipat ganda dalam hitungan bulan.”
+                      </p>
+                      <p class="text-xs font-bold text-ink mt-1">
+                        — James Clear <span class="font-normal text-mute">(Penulis Atomic Habits)</span>
+                      </p>
+                      <p class="text-[11px] text-ink2 mt-1.5 font-medium">
+                        <span class="font-bold">Langkah hari ini:</span> Fokus pada sistem dan kebiasaan kecil hari ini, hasil besar akan mengikuti dengan sendirinya.
+                      </p>
+                    </div>
+                    <div class="hidden sm:block text-5xl opacity-80 pr-2">
+                      🌿
+                    </div>
+                  </div>
+
+                  <!-- 4 STAT KPI TILES -->
+                  <div class="grid grid-cols-4 gap-2.5">
+                    <div class="bg-surface rounded-xl p-2.5 border border-line">
+                      <p class="text-[10px] font-bold text-mute uppercase">Kebiasaan Hari Ini</p>
+                      <p class="text-xl font-extrabold text-ink mt-0.5">8 / 8</p>
+                      <div class="w-full h-1.5 rounded-full bg-emerald-100 mt-2 overflow-hidden">
+                        <div class="w-full h-full bg-emerald-500 rounded-full"></div>
+                      </div>
+                    </div>
+                    <div class="bg-surface rounded-xl p-2.5 border border-line">
+                      <p class="text-[10px] font-bold text-mute uppercase">Progres Tujuan</p>
+                      <p class="text-xl font-extrabold text-ink mt-0.5">85%</p>
+                      <div class="w-full h-1.5 rounded-full bg-violet-100 mt-2 overflow-hidden">
+                        <div class="w-[85%] h-full bg-violet-500 rounded-full"></div>
+                      </div>
+                    </div>
+                    <div class="bg-surface rounded-xl p-2.5 border border-line">
+                      <p class="text-[10px] font-bold text-mute uppercase">Agenda Pekan Ini</p>
+                      <p class="text-xl font-extrabold text-ink mt-0.5">14 Selesai</p>
+                      <p class="text-[9px] text-emerald-600 font-bold mt-1.5">▲ +18% vs pekan lalu</p>
+                    </div>
+                    <div class="bg-surface rounded-xl p-2.5 border border-line">
+                      <p class="text-[10px] font-bold text-mute uppercase">Runutan Terbaik</p>
+                      <p class="text-xl font-extrabold text-ink mt-0.5">21 Hari 🔥</p>
+                      <p class="text-[9px] text-mute font-medium mt-1.5">Baca 10 Halaman Buku</p>
+                    </div>
+                  </div>
+
+                  <!-- 2 PANELS: AGENDA & HABITS -->
+                  <div class="grid grid-cols-12 gap-3 flex-1 overflow-hidden">
+                    
+                    <!-- Left Panel: Agenda -->
+                    <div class="col-span-6 bg-surface rounded-2xl p-3 border border-line flex flex-col">
+                      <div class="flex items-center justify-between pb-2 border-b border-line">
+                        <span class="text-xs font-bold text-ink">Agenda Hari Ini (3 dari 3 Selesai)</span>
+                        <span class="text-[10px] font-bold text-brand">Lihat Semua</span>
+                      </div>
+                      <div class="mt-2 space-y-2 text-xs">
+                        <div class="p-2 rounded-xl bg-surface2 border border-line/60 flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 rounded bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                            <span class="font-semibold line-through text-mute">08:00 · Sholat Dhuha & Doa</span>
+                          </div>
+                          <span class="px-1.5 py-0.5 rounded text-[9px] bg-emerald-100 text-emerald-600 font-bold">Ibadah</span>
+                        </div>
+                        <div class="p-2 rounded-xl bg-surface2 border border-line/60 flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 rounded bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                            <span class="font-semibold line-through text-mute">10:30 · Sprint Review Produk</span>
+                          </div>
+                          <span class="px-1.5 py-0.5 rounded text-[9px] bg-sky-100 text-sky-600 font-bold">Kerja</span>
+                        </div>
+                        <div class="p-2 rounded-xl bg-surface2 border border-line/60 flex items-center justify-between">
+                          <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 rounded bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                            <span class="font-semibold line-through text-mute">16:00 · Lari Santai 5KM</span>
+                          </div>
+                          <span class="px-1.5 py-0.5 rounded text-[9px] bg-amber-100 text-amber-600 font-bold">Kesehatan</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Right Panel: Financial Awareness -->
+                    <div class="col-span-6 bg-surface rounded-2xl p-3 border border-line flex flex-col">
+                      <div class="flex items-center justify-between pb-2 border-b border-line">
+                        <span class="text-xs font-bold text-ink">Keuangan Sadar Pekan Ini</span>
+                        <span class="text-[10px] font-bold text-emerald-600">Hemat 42%</span>
+                      </div>
+                      <div class="mt-2 space-y-2 text-xs">
+                        <div class="flex justify-between items-center p-2 rounded-xl bg-surface2">
+                          <span class="text-mute">Sisa Anggaran Harian</span>
+                          <span class="font-extrabold text-ink">Rp 75.000 <span class="text-mute font-normal">/ 100rb</span></span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 rounded-xl bg-surface2">
+                          <span class="text-mute">Tabungan & Investasi</span>
+                          <span class="font-extrabold text-emerald-600">+Rp 2.500.000</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 rounded-xl bg-surface2">
+                          <span class="text-mute">Sedekah & Berbagi</span>
+                          <span class="font-extrabold text-brand">Rp 350.000</span>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- MacBook Bottom Lip / Notch Opening -->
+        <div class="macbook-base h-4 sm:h-5 rounded-b-[20px] sm:rounded-b-[24px] mx-8 sm:mx-16 relative flex justify-center">
+          <div class="w-20 sm:w-28 h-1.5 bg-[#141517] rounded-b-md"></div>
+        </div>
+
+      </div>
+
+      <!-- ============================================== -->
+      <!-- 2. MOBILE PHONE MOCKUP (iPhone 16 Pro Titanium) -->
+      <!-- Positioned dynamically overlapping the laptop -->
+      <!-- ============================================== -->
+      <div class="w-[280px] sm:w-[320px] md:w-[340px] relative z-30 -mt-28 sm:-mt-48 lg:-mt-64 xl:-mt-72 lg:mr-[-540px] xl:mr-[-620px] transition-transform hover:scale-[1.03] duration-500">
+        
+        <!-- iPhone Chassis with Titanium Outer Edge -->
+        <div class="iphone-chassis p-3 sm:p-3.5 rounded-[50px] sm:rounded-[56px] border border-white/20">
+          
+          <!-- Screen Outer Glass -->
+          <div class="bg-[#F4EEE7] text-ink rounded-[42px] sm:rounded-[48px] overflow-hidden border-[3px] border-black relative h-[590px] sm:h-[640px] flex flex-col font-sans select-none pointer-events-none">
+            
+            <!-- iOS Status Bar & Dynamic Island -->
+            <div class="h-10 pt-2 px-6 flex items-center justify-between shrink-0 bg-transparent z-40">
+              <span class="text-xs font-bold text-ink">9:41</span>
+              <div class="w-24 h-6 dynamic-island rounded-full flex items-center justify-end px-2.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-[#111A24] ring-1 ring-blue-500/40"></span>
+              </div>
+              <div class="flex items-center gap-1.5 text-xs text-ink">
+                <span>5G</span>
+                <span>🔋</span>
+              </div>
+            </div>
+
+            <!-- Mobile App Screen Content -->
+            <div class="flex-1 px-4 pt-1 pb-16 overflow-hidden flex flex-col gap-3">
+              
+              <!-- Mobile Header -->
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-[11px] font-bold text-mute">Selamat Pagi 👋</p>
+                  <p class="font-display text-lg font-bold text-ink">Farhan S.</p>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600 text-[10px] font-bold">
+                    🟢 Online
+                  </span>
+                  <div class="w-8 h-8 rounded-full bg-surface border border-line flex items-center justify-center text-xs">
+                    🔔
+                  </div>
+                </div>
+              </div>
+
+              <!-- Daily Quote Card (Compact Mobile) -->
+              <div class="rounded-2xl bg-gradient-to-br from-[#FDE9EE] via-[#FFEBDF] to-[#FFF4D9] p-3 border border-line">
+                <span class="px-2 py-0.5 rounded-full bg-surface/80 text-[9px] font-bold text-brand uppercase tracking-wider">
+                  💡 Motivasi Hari Ini
+                </span>
+                <p class="font-display text-xs font-bold text-ink mt-1.5 leading-snug">
+                  “Perubahan kecil tidak terlihat perbedaannya dalam sehari, tetapi dampaknya berlipat ganda dalam hitungan bulan.”
+                </p>
+                <p class="text-[10px] text-mute mt-1 font-semibold">— James Clear</p>
+              </div>
+
+              <!-- Quick Progress Counter -->
+              <div class="grid grid-cols-2 gap-2">
+                <div class="bg-surface rounded-xl p-2.5 border border-line">
+                  <span class="text-[10px] font-bold text-mute uppercase">Kebiasaan</span>
+                  <p class="text-base font-extrabold text-ink mt-0.5">8/8 Selesai ✨</p>
+                  <div class="w-full h-1 bg-emerald-100 rounded-full mt-1.5">
+                    <div class="w-full h-full bg-emerald-500 rounded-full"></div>
+                  </div>
+                </div>
+                <div class="bg-surface rounded-xl p-2.5 border border-line">
+                  <span class="text-[10px] font-bold text-mute uppercase">Runutan</span>
+                  <p class="text-base font-extrabold text-ink mt-0.5">21 Hari 🔥</p>
+                  <p class="text-[9px] text-emerald-600 font-bold mt-1">Konsisten</p>
+                </div>
+              </div>
+
+              <!-- Habit Checklist Items -->
+              <div class="space-y-1.5">
+                <p class="text-[11px] font-bold text-ink2 uppercase tracking-wider">Rutinitas Hari Ini</p>
+                
+                <div class="p-2.5 rounded-xl bg-surface border border-line flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm">📖</span>
+                    <span class="text-xs font-semibold text-ink line-through text-mute">Baca 10 Halaman</span>
+                  </div>
+                  <span class="w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center">✓</span>
+                </div>
+
+                <div class="p-2.5 rounded-xl bg-surface border border-line flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm">💧</span>
+                    <span class="text-xs font-semibold text-ink line-through text-mute">Minum 2 Liter Air</span>
+                  </div>
+                  <span class="w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center">✓</span>
+                </div>
+
+                <div class="p-2.5 rounded-xl bg-surface border border-line flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm">🏃</span>
+                    <span class="text-xs font-semibold text-ink line-through text-mute">Jalan 5.000 Langkah</span>
+                  </div>
+                  <span class="w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center">✓</span>
+                </div>
+
+                <div class="p-2.5 rounded-xl bg-surface border border-line flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm">📿</span>
+                    <span class="text-xs font-semibold text-ink line-through text-mute">Dzikir Pagi & Sore</span>
+                  </div>
+                  <span class="w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center">✓</span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Floating Bottom Island Nav -->
+            <div class="absolute bottom-3 inset-x-4 h-12 glass-pill rounded-full px-4 flex items-center justify-around z-50">
+              <span class="text-brand font-bold text-xs">Beranda</span>
+              <span class="text-mute text-xs">Tujuan</span>
+              <div class="w-9 h-9 -mt-4 rounded-full bg-brand text-white flex items-center justify-center font-bold text-lg shadow-lg">
+                +
+              </div>
+              <span class="text-mute text-xs">Jadwal</span>
+              <span class="text-mute text-xs">Akun</span>
+            </div>
+
+            <!-- Home Indicator Bar -->
+            <div class="absolute bottom-1 left-1/2 -translate-x-1/2 w-32 h-1 bg-black/40 rounded-full"></div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- FOOTER VALUE PROPOSITION (PORTFOLIO SPEC SHEET) -->
+  <footer class="max-w-4xl mx-auto mt-6 bg-surface rounded-3xl p-6 border border-line shadow-sm text-center">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+      <div>
+        <h4 class="text-xs font-bold uppercase tracking-wider text-brand">01 · Filosofi & UX</h4>
+        <p class="text-xs text-ink2 mt-1 leading-relaxed">
+          Mengubah tujuan besar menjadi langkah mikro harian yang terukur tanpa beban mental. Dilengkapi kutipan motivasi harian dari tokoh dunia.
+        </p>
+      </div>
+      <div>
+        <h4 class="text-xs font-bold uppercase tracking-wider text-coral">02 · Arsitektur Teknis</h4>
+        <p class="text-xs text-ink2 mt-1 leading-relaxed">
+          React 18, Vite, Tailwind CSS, Turso SQLite Serverless. Dilengkapi isolasi data total dan sanitasi ID otomatis.
+        </p>
+      </div>
+      <div>
+        <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-500">03 · Pengalaman Native PWA</h4>
+        <p class="text-xs text-ink2 mt-1 leading-relaxed">
+          Dapat diinstall langsung ke layar utama Android & iOS lengkap dengan icon adaptif, splash screen, dan kemampuan offline-ready.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
