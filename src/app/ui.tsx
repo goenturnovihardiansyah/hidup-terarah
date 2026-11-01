@@ -4,10 +4,49 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import type { Tint } from "./types";
 import { cn } from "@/lib/utils";
 
-export const tintBg: Record<Tint, string> = { lilac: "bg-lilac-bg", rose: "bg-rose-bg", butter: "bg-butter-bg", mint: "bg-mint-bg", sky: "bg-sky-bg", peach: "bg-peach-bg" };
-export const tintFg: Record<Tint, string> = { lilac: "text-lilac", rose: "text-rose", butter: "text-butter", mint: "text-mint", sky: "text-sky", peach: "text-peach" };
+export const tintBg: Record<Tint, string> = {
+  lilac: "bg-lilac-bg",
+  rose: "bg-rose-bg",
+  butter: "bg-butter-bg",
+  mint: "bg-mint-bg",
+  sky: "bg-sky-bg",
+  peach: "bg-peach-bg",
+  emerald: "bg-emerald-bg",
+  amber: "bg-amber-bg",
+  violet: "bg-violet-bg",
+  teal: "bg-teal-bg",
+  indigo: "bg-indigo-bg",
+  coral: "bg-coral-bg",
+};
+export const tintFg: Record<Tint, string> = {
+  lilac: "text-lilac",
+  rose: "text-rose",
+  butter: "text-butter",
+  mint: "text-mint",
+  sky: "text-sky",
+  peach: "text-peach",
+  emerald: "text-emerald",
+  amber: "text-amber",
+  violet: "text-violet",
+  teal: "text-teal",
+  indigo: "text-indigo",
+  coral: "text-coral",
+};
 export const tintVar = (t: Tint) => `var(--${t})`;
-export const TINTS: Tint[] = ["lilac", "rose", "butter", "mint", "sky", "peach"];
+export const TINTS: Tint[] = [
+  "lilac",
+  "rose",
+  "butter",
+  "mint",
+  "sky",
+  "peach",
+  "emerald",
+  "amber",
+  "violet",
+  "teal",
+  "indigo",
+  "coral",
+];
 
 export const Panel = ({ title, action, children, className, sub }: { title?: ReactNode; sub?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) => (
   <section className={cn("card p-4 sm:p-5", className)}>

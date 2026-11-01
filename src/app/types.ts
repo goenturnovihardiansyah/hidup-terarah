@@ -33,7 +33,19 @@ export interface ReminderLog {
 }
 export interface Reflection { id: ID; week_start: string; learned: string; to_improve: string; created_at: string }
 
-export type Tint = "lilac" | "rose" | "butter" | "mint" | "sky" | "peach";
+export type Tint =
+  | "lilac"
+  | "rose"
+  | "butter"
+  | "mint"
+  | "sky"
+  | "peach"
+  | "emerald"
+  | "amber"
+  | "violet"
+  | "teal"
+  | "indigo"
+  | "coral";
 
 export interface AppData {
   version: 1;

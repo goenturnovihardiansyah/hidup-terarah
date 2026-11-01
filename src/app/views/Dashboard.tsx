@@ -7,6 +7,7 @@ import { MonthCalendar } from "../calendar";
 import { QuickAddMenu } from "../shell";
 import { addDays, startOfDay, startOfWeek, ymd, greeting, fmtTime, fmtDateLong, BULAN_PENDEK, rupiah, rupiahShort, daysBetween, parseYmd } from "../dates";
 import { detectDrift, habitsForToday, isDone, streak, schedulesOn, effectiveStatus, goalProgress, spendingOn, balance, dailyHabitRate, weeklyReport, periodCount } from "../logic";
+import { getDailyHeroQuote } from "../quotes";
 import type { Tint } from "../types";
 import { cn } from "@/lib/utils";
 
@@ -62,17 +63,45 @@ export const Dashboard = () => {
   recs.push({ title: "Aturan 2 menit", text: weak ? `Mulai "${weak.name}" versi mini, cukup 2 menit.` : "Kebiasaan baru? Mulai dari versi paling kecil.", art: <ThumbHabit />, go: () => setView("kebiasaan") });
   recs.push({ title: "Cek batas belanja", text: `Bulan ini terpakai ${rupiahShort(monthSpend(data, now))} dari ${rupiahShort(data.prefs.monthly_budget)}.`, art: <ThumbMoney />, go: () => setView("keuangan") });
 
+  const heroQuote = useMemo(() => getDailyHeroQuote(now), [now]);
+
   return (
     <div className="space-y-4">
       {/* HERO */}
       <section className="relative overflow-hidden rounded-[28px] border border-line bg-gradient-to-br from-rose-bg via-peach-bg to-butter-bg" style={{ boxShadow: "var(--shadow)" }}>
-        <div className="grid items-end md:grid-cols-[1.05fr_1fr]">
+        <div className="grid items-end md:grid-cols-[1.15fr_0.85fr]">
           <div className="relative z-10 p-6 sm:p-8 md:pb-10">
-            <p className="text-sm font-semibold text-ink2">{greeting(now)}, {data.user?.name.split(" ")[0]} 👋 <span className="text-mute">· {fmtDateLong(now)}</span></p>
-            <h1 className="mt-3 font-display text-[38px] font-semibold leading-[1.02] text-ink sm:text-[50px]">Langkah kecil,<br />arah yang jelas.</h1>
-            <p className="mt-3 max-w-sm text-[15px] text-ink2">
-              {habits.length + agenda.length === 0 ? "Hari ini masih kosong. Tambah satu hal kecil untuk memulai." : `Hari ini ada ${agenda.filter((a) => a.status !== "selesai").length} agenda dan ${habits.length - doneHabits} kebiasaan yang menunggu. Satu per satu saja.`}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-surface/85 px-3 py-1 text-xs font-bold text-brand shadow-xs backdrop-blur-sm">
+                <span>💡</span> Motivasi Hari Ini
+              </span>
+              <span className="text-xs font-medium text-mute">· {fmtDateLong(now)}</span>
+            </div>
+
+            <p className="mt-3 text-sm font-semibold text-ink2">
+              {greeting(now)}, {data.user?.name.split(" ")[0]} 👋
             </p>
+
+            <blockquote className="mt-2.5">
+              <h1 className="font-display text-[23px] sm:text-[28px] md:text-[31px] font-semibold leading-snug text-ink">
+                “{heroQuote.quote}”
+              </h1>
+              <footer className="mt-2 flex flex-wrap items-center gap-1.5 text-xs sm:text-sm text-ink2">
+                <span className="font-bold text-ink">— {heroQuote.author}</span>
+                <span className="text-mute">({heroQuote.role})</span>
+              </footer>
+            </blockquote>
+
+            <p className="mt-3 max-w-md text-[13px] sm:text-[14px] leading-relaxed text-ink2">
+              <span className="font-bold text-ink">Pesan konsistensi:</span> {heroQuote.advice}
+            </p>
+
+            <p className="mt-2 text-xs font-medium text-mute">
+              {habits.length + agenda.length === 0
+                ? "Hari ini belum ada catatan. Mulai dari satu hal kecil."
+                : `Hari ini ada ${agenda.filter((a) => a.status !== "selesai").length} agenda & ${habits.length - doneHabits} kebiasaan yang menunggu. Langkah demi langkah.`}
+            </p>
+
             <div className="mt-5 flex flex-wrap gap-2">
               <QuickAddMenu align="start"><button className="btn btn-primary px-5 py-3 text-[15px]"><Plus size={18} /> Catat cepat</button></QuickAddMenu>
               {goals.length === 0 && <button onClick={() => setQuick("tujuan")} className="btn btn-ghost py-3">Buat tujuan pertama</button>}

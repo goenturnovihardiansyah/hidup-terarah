@@ -4,6 +4,7 @@ import { useStore } from "../store";
 import { PageHead, Panel } from "../ui";
 import { weeklyReport, dailyHabitRate } from "../logic";
 import { addDays, fmtDateShort, startOfDay, startOfWeek, ymd, rupiah, HARI_PENDEK } from "../dates";
+import { getDailyReflectionQuote } from "../quotes";
 import { cn } from "@/lib/utils";
 
 export const Review = () => {
@@ -14,6 +15,7 @@ export const Review = () => {
   const rep = weeklyReport(data, week, now);
   const prev = weeklyReport(data, addDays(week, -7), now);
   const isCur = wsKey === ymd(startOfWeek(now));
+  const refQuote = useMemo(() => getDailyReflectionQuote(now), [now]);
 
   const chart = useMemo(() => Array.from({ length: 8 }, (_, i) => {
     const w = addDays(startOfWeek(now), (i - 7) * 7);
@@ -92,6 +94,11 @@ export const Review = () => {
         </Panel>
 
         <Panel className="xl:col-span-7" title="Catatan refleksi" sub={existing ? "Tersimpan. Kamu bisa ubah kapan saja." : "Dua kalimat sudah cukup."}>
+          <div className="mb-4 rounded-[16px] border border-line bg-gradient-to-r from-butter-bg to-peach-bg p-3.5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-peach">💡 Inspirasi Refleksi ({refQuote.author} - {refQuote.role})</p>
+            <p className="mt-1 text-sm font-semibold italic text-ink">“{refQuote.quote}”</p>
+            <p className="mt-1 text-xs text-ink2">{refQuote.advice}</p>
+          </div>
           <form onSubmit={(e) => { e.preventDefault(); s.saveReflection({ week_start: wsKey, learned, to_improve: improve }); s.toast("Refleksi tersimpan. Terima kasih sudah jujur pada diri sendiri."); }} className="space-y-3">
             <div><label className="label" htmlFor="rf-l">Apa yang berhasil / pelajaran minggu ini?</label><textarea id="rf-l" rows={3} className="field resize-none" value={learned} onChange={(e) => setLearned(e.target.value)} placeholder="Misal: bangun lebih pagi bikin fokus seharian" /></div>
             <div><label className="label" htmlFor="rf-i">Satu hal yang ingin diperbaiki</label><textarea id="rf-i" rows={2} className="field resize-none" value={improve} onChange={(e) => setImprove(e.target.value)} placeholder="Misal: HP di luar kamar setelah jam 10 malam" /></div>

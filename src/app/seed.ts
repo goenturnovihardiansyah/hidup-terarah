@@ -11,10 +11,14 @@ export const defaultCategories = (): Category[] => [
   { id: "c-transport", name: "Transport", type: "pengeluaran", color: "sky", icon: "🛵" },
   { id: "c-belanja", name: "Belanja", type: "pengeluaran", color: "rose", icon: "🛍️" },
   { id: "c-tagihan", name: "Tagihan", type: "pengeluaran", color: "lilac", icon: "🧾" },
-  { id: "c-hiburan", name: "Hiburan", type: "pengeluaran", color: "butter", icon: "🎬" },
-  { id: "c-sedekah", name: "Sedekah", type: "pengeluaran", color: "mint", icon: "🤲" },
-  { id: "c-gaji", name: "Gaji", type: "pemasukan", color: "mint", icon: "💼" },
-  { id: "c-freelance", name: "Freelance", type: "pemasukan", color: "sky", icon: "💻" },
+  { id: "c-hiburan", name: "Hiburan", type: "pengeluaran", color: "amber", icon: "🎬" },
+  { id: "c-kesehatan", name: "Kesehatan", type: "pengeluaran", color: "emerald", icon: "🩺" },
+  { id: "c-edukasi", name: "Pendidikan & Buku", type: "pengeluaran", color: "indigo", icon: "📚" },
+  { id: "c-sedekah", name: "Sedekah & Infaq", type: "pengeluaran", color: "mint", icon: "🤲" },
+  { id: "c-gaji", name: "Gaji Pokok", type: "pemasukan", color: "mint", icon: "💼" },
+  { id: "c-freelance", name: "Freelance & Proyek", type: "pemasukan", color: "sky", icon: "💻" },
+  { id: "c-bisnis", name: "Bisnis / Usaha", type: "pemasukan", color: "violet", icon: "🏢" },
+  { id: "c-investasi", name: "Investasi / Bunga", type: "pemasukan", color: "teal", icon: "📈" },
   { id: "c-lain", name: "Lainnya", type: "pemasukan", color: "butter", icon: "✨" },
 ];
 

@@ -7,6 +7,7 @@ import { Logo } from "./ui";
 import { ArchArt } from "./art";
 import { cn } from "@/lib/utils";
 import { fmtDateShort, rupiah } from "./dates";
+import { getDailyReflectionQuote } from "./quotes";
 
 export const NAV: { v: View; l: string; icon: typeof House; tint: string }[] = [
   { v: "beranda", l: "Beranda", icon: House, tint: "var(--lilac)" },
@@ -20,8 +21,9 @@ export const NAV: { v: View; l: string; icon: typeof House; tint: string }[] = [
 ];
 
 const Sidebar = () => {
-  const { view, setView, data } = useStore();
+  const { view, setView, data, now } = useStore();
   const unread = data.reminders.filter((r) => !r.is_read).length;
+  const refQuote = useMemo(() => getDailyReflectionQuote(now), [now]);
   return (
     <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-[232px] shrink-0 flex-col rounded-[28px] border border-line glass-surface p-4 backdrop-blur lg:flex" style={{ boxShadow: "var(--shadow)" }}>
       <div className="mb-6 flex items-center gap-2.5 px-2 pt-1">
@@ -41,10 +43,20 @@ const Sidebar = () => {
           );
         })}
       </nav>
-      <div className="mt-auto rounded-[22px] bg-gradient-to-b from-peach-bg to-rose-bg p-4">
+      <div className="mt-auto rounded-[22px] border border-line bg-gradient-to-b from-peach-bg to-rose-bg p-4 shadow-sm">
         <div className="-mx-1 mb-1"><ArchArt /></div>
-        <p className="font-display text-[15px] font-semibold leading-snug text-ink">Pelan tapi terarah, itu tetap maju.</p>
-        <button onClick={() => setView("evaluasi")} className="btn mt-3 w-full bg-coral text-white"><NotebookPen size={15} /> Tulis refleksi</button>
+        <span className="inline-block rounded-full bg-surface/75 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-coral">
+          Refleksi Hari Ini
+        </span>
+        <p className="mt-1.5 font-display text-[13px] font-semibold leading-snug text-ink line-clamp-3">
+          “{refQuote.quote}”
+        </p>
+        <p className="mt-1 text-[11px] font-medium text-mute truncate">
+          — {refQuote.author}
+        </p>
+        <button onClick={() => setView("evaluasi")} className="btn mt-3 w-full bg-coral text-white py-2 text-xs font-semibold">
+          <NotebookPen size={14} /> Tulis refleksi
+        </button>
       </div>
     </aside>
   );

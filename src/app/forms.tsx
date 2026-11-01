@@ -6,17 +6,39 @@ import type { FreqType, Goal, Habit, Schedule, Tint, TxType } from "./types";
 import { addDays, pad, startOfDay, toLocalInput, ymd } from "./dates";
 import { cn } from "@/lib/utils";
 
+const SCHEDULE_ICONS = [
+  "📌", "💻", "📞", "🕌", "📚", "🏃", "🛒", "🎨", "🧾", "🍽️", "✈️", "🧠",
+  "💼", "🎯", "⚡", "🏋️", "🧘", "☕", "🚴", "🚶", "🧹", "📝", "📊", "👥",
+  "🚗", "🩺", "💊", "🎓", "🎤", "🎬", "🎵", "🛠️", "🌱", "🔥", "🤝", "⭐"
+];
+
+const HABIT_ICONS = [
+  "✨", "🌙", "📖", "💧", "📿", "🏃", "💻", "🧘", "🥗", "😴", "✍️", "🤲",
+  "🏋️", "🚶", "🚴", "🍎", "🍵", "🧠", "🎯", "📵", "🚭", "⏱️", "🧼", "☀️",
+  "🌿", "💪", "🧗", "🎨", "🎵", "📚", "📝", "🧹", "💊", "🤝", "❤️", "💎"
+];
+
 const TintPicker = ({ value, onChange }: { value: Tint; onChange: (t: Tint) => void }) => (
-  <div className="flex gap-2">
+  <div className="flex flex-wrap gap-2 max-w-sm">
     {TINTS.map((t) => (
-      <button key={t} type="button" aria-label={`Warna ${t}`} onClick={() => onChange(t)} className={cn("h-8 w-8 rounded-full border-2 transition", tintBg[t], value === t ? "border-ink scale-110" : "border-transparent")} />
+      <button
+        key={t}
+        type="button"
+        aria-label={`Warna ${t}`}
+        onClick={() => onChange(t)}
+        className={cn(
+          "h-7 w-7 rounded-full border-2 transition hover:scale-110",
+          tintBg[t],
+          value === t ? "border-ink scale-110 shadow-sm ring-2 ring-brand/30" : "border-transparent"
+        )}
+      />
     ))}
   </div>
 );
 const EmojiPicker = ({ value, onChange, list }: { value: string; onChange: (e: string) => void; list: string[] }) => (
-  <div className="flex flex-wrap gap-1.5">
+  <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pr-1">
     {list.map((e) => (
-      <button key={e} type="button" onClick={() => onChange(e)} className={cn("grid h-9 w-9 place-items-center rounded-[11px] border text-lg transition", value === e ? "border-ink bg-surface2" : "border-line hover:border-ink2")}>{e}</button>
+      <button key={e} type="button" onClick={() => onChange(e)} className={cn("grid h-9 w-9 place-items-center rounded-[11px] border text-lg transition", value === e ? "border-ink bg-surface2 scale-105" : "border-line hover:border-ink2 hover:bg-surface2/50")}>{e}</button>
     ))}
   </div>
 );
@@ -38,7 +60,15 @@ export const ScheduleForm = ({ open, onClose, initial }: { open: boolean; onClos
   const submit = (e: React.FormEvent) => {
     e.preventDefault(); if (!title.trim() || !start) return;
     const s = new Date(start);
-    saveSchedule({ id: initial?.id, title: title.trim(), notes, start_at: s.toISOString(), end_at: new Date(s.getTime() + dur * 60000).toISOString(), icon, color });
+    saveSchedule({
+      ...(initial?.id ? { id: initial.id } : {}),
+      title: title.trim(),
+      notes,
+      start_at: s.toISOString(),
+      end_at: new Date(s.getTime() + dur * 60000).toISOString(),
+      icon,
+      color,
+    });
     toast(initial ? "Agenda diperbarui." : "Agenda ditambahkan."); onClose();
   };
   return (
@@ -53,7 +83,7 @@ export const ScheduleForm = ({ open, onClose, initial }: { open: boolean; onClos
             </select></div>
         </div>
         <div><label className="label" htmlFor="sf-n">Catatan</label><textarea id="sf-n" rows={2} className="field resize-none" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional" /></div>
-        <div><span className="label">Ikon & warna</span><EmojiPicker value={icon} onChange={setIcon} list={["📌", "💻", "📞", "🕌", "📚", "🏃", "🛒", "🎨", "🧾", "🍽️", "✈️", "🧠"]} /><div className="mt-3"><TintPicker value={color} onChange={setColor} /></div></div>
+        <div><span className="label">Ikon & warna</span><EmojiPicker value={icon} onChange={setIcon} list={SCHEDULE_ICONS} /><div className="mt-3"><TintPicker value={color} onChange={setColor} /></div></div>
         <div className="flex justify-end gap-2 pt-1"><button type="button" className="btn btn-ghost" onClick={onClose}>Batal</button><button className="btn btn-primary">Simpan agenda</button></div>
       </form>
     </Modal>
@@ -72,7 +102,15 @@ export const HabitForm = ({ open, onClose, initial }: { open: boolean; onClose: 
   }, [open, initial]);
   const submit = (e: React.FormEvent) => {
     e.preventDefault(); if (!name.trim()) return;
-    saveHabit({ id: initial?.id, name: name.trim(), frequency_type: type, frequency_target: type === "harian" ? 1 : target, preferred_time: time, icon, color });
+    saveHabit({
+      ...(initial?.id ? { id: initial.id } : {}),
+      name: name.trim(),
+      frequency_type: type,
+      frequency_target: type === "harian" ? 1 : target,
+      preferred_time: time,
+      icon,
+      color,
+    });
     toast(initial ? "Kebiasaan diperbarui." : "Kebiasaan baru ditambahkan. Mulai kecil saja!"); onClose();
   };
   return (
@@ -89,7 +127,7 @@ export const HabitForm = ({ open, onClose, initial }: { open: boolean; onClose: 
           )}
         </div>
         <div><label className="label" htmlFor="hf-t">Jam biasa dilakukan (untuk pengingat)</label><input id="hf-t" type="time" className="field w-40" value={time} onChange={(e) => setTime(e.target.value)} /></div>
-        <div><span className="label">Ikon & warna</span><EmojiPicker value={icon} onChange={setIcon} list={["✨", "🌙", "📖", "💧", "📿", "🏃", "💻", "🧘", "🥗", "😴", "✍️", "🤲"]} /><div className="mt-3"><TintPicker value={color} onChange={setColor} /></div></div>
+        <div><span className="label">Ikon & warna</span><EmojiPicker value={icon} onChange={setIcon} list={HABIT_ICONS} /><div className="mt-3"><TintPicker value={color} onChange={setColor} /></div></div>
         <div className="flex justify-end gap-2 pt-1"><button type="button" className="btn btn-ghost" onClick={onClose}>Batal</button><button className="btn btn-primary">Simpan</button></div>
       </form>
     </Modal>
@@ -145,7 +183,16 @@ export const GoalForm = ({ open, onClose, initial, first }: { open: boolean; onC
   }, [open, initial]);
   const submit = (e: React.FormEvent) => {
     e.preventDefault(); if (!title.trim()) return;
-    saveGoal({ id: initial?.id, title: title.trim(), reason: reason.trim(), target_date: date, color }, initial ? undefined : steps.map((s) => s.trim()));
+    saveGoal(
+      {
+        ...(initial?.id ? { id: initial.id } : {}),
+        title: title.trim(),
+        reason: reason.trim(),
+        target_date: date,
+        color,
+      },
+      initial ? undefined : steps.map((s) => s.trim())
+    );
     toast(initial ? "Tujuan diperbarui." : "Tujuan dibuat. Langkah pertama sudah diambil!"); onClose();
   };
   return (

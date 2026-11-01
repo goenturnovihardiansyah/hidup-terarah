@@ -25,10 +25,73 @@ import {
 } from "./turso";
 
 const KEY = "hidup-terarah:v1";
+
+/** Memastikan setiap entitas memiliki ID unik dan tidak saling tercampur atau terhapus bersamaan */
+export const sanitizeData = (d: AppData): AppData => {
+  const seenHabits = new Set<string>();
+  const habits = (d.habits || []).map((h) => {
+    let id = h?.id;
+    if (!id || typeof id !== "string" || id === "undefined" || seenHabits.has(id)) {
+      id = uid();
+    }
+    seenHabits.add(id);
+    return { ...h, id };
+  });
+
+  const seenSchedules = new Set<string>();
+  const schedules = (d.schedules || []).map((s) => {
+    let id = s?.id;
+    if (!id || typeof id !== "string" || id === "undefined" || seenSchedules.has(id)) {
+      id = uid();
+    }
+    seenSchedules.add(id);
+    return { ...s, id };
+  });
+
+  const seenGoals = new Set<string>();
+  const goals = (d.goals || []).map((g) => {
+    let id = g?.id;
+    if (!id || typeof id !== "string" || id === "undefined" || seenGoals.has(id)) {
+      id = uid();
+    }
+    seenGoals.add(id);
+    return { ...g, id };
+  });
+
+  const seenSteps = new Set<string>();
+  const steps = (d.steps || []).map((s) => {
+    let id = s?.id;
+    if (!id || typeof id !== "string" || id === "undefined" || seenSteps.has(id)) {
+      id = uid();
+    }
+    seenSteps.add(id);
+    return { ...s, id };
+  });
+
+  const seenTx = new Set<string>();
+  const transactions = (d.transactions || []).map((t) => {
+    let id = t?.id;
+    if (!id || typeof id !== "string" || id === "undefined" || seenTx.has(id)) {
+      id = uid();
+    }
+    seenTx.add(id);
+    return { ...t, id };
+  });
+
+  return {
+    ...d,
+    habits,
+    schedules,
+    goals,
+    steps,
+    transactions,
+  };
+};
+
 const load = (): AppData => {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...emptyData(), ...JSON.parse(raw) };
+    if (raw) return sanitizeData({ ...emptyData(), ...JSON.parse(raw) });
   } catch {
     /* abaikan */
   }
@@ -136,7 +199,7 @@ const useStoreValue = () => {
       if (data.user?.email && (isAnyCloudConfigured() || tursoServerlessActive)) {
         fetchAppDataFromCloud(data.user.email).then((res) => {
           if (res.success && res.data) {
-            setData((curr) => ({ ...curr, ...res.data }));
+            setData((curr) => sanitizeData({ ...curr, ...res.data }));
             setCloudStatus("synced");
             setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
           }
@@ -274,7 +337,7 @@ const useStoreValue = () => {
     setCloudStatus("syncing");
     const res = await fetchAppDataFromCloud(cur.user.email);
     if (res.success && res.data) {
-      setData((c) => ({ ...c, ...res.data }));
+      setData((c) => sanitizeData({ ...c, ...res.data }));
       setCloudStatus("synced");
       setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
       toast("Data terbaru berhasil diunduh dari Cloud!");
@@ -437,7 +500,12 @@ const useStoreValue = () => {
           setCloudStatus("syncing");
           const cloudRes = await fetchAppDataFromCloud(cleanEmail);
           if (cloudRes.success && cloudRes.data) {
-            setData((curr) => ({ ...curr, ...cloudRes.data, user: cloudRes.data!.user || { id: uid(), name: cleanEmail.split("@")[0], email: cleanEmail, created_at: new Date().toISOString() } }));
+            const cleanData = sanitizeData(cloudRes.data);
+            setData((curr) => ({
+              ...curr,
+              ...cleanData,
+              user: cleanData.user || { id: uid(), name: cleanEmail.split("@")[0], email: cleanEmail, created_at: new Date().toISOString() },
+            }));
             setCloudStatus("synced");
             setLastSyncedAt(new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }));
             toast("Data Anda berhasil dimuat dari Cloud!");
@@ -474,41 +542,78 @@ const useStoreValue = () => {
         if (!done && day === ymd(new Date())) toast(`"${h.name}" tercatat. Mantap!`);
       },
       saveHabit: (h: Partial<Habit> & { name: string }) =>
-        update((d) =>
-          h.id
-            ? { ...d, habits: d.habits.map((x) => (x.id === h.id ? ({ ...x, ...h } as Habit) : x)) }
-            : {
-                ...d,
-                habits: [
-                  ...d.habits,
-                  {
-                    id: uid(),
-                    frequency_type: "harian",
-                    frequency_target: 1,
-                    preferred_time: "07:00",
-                    is_active: true,
-                    created_at: new Date().toISOString(),
-                    icon: "✨",
-                    color: "lilac",
-                    ...h,
-                  } as Habit,
-                ],
-              }
-        ),
-      deleteHabit: (id: string) =>
-        update((d) => ({ ...d, habits: d.habits.filter((h) => h.id !== id), habitLogs: d.habitLogs.filter((l) => l.habit_id !== id) })),
+        update((d) => {
+          const validId = h.id && typeof h.id === "string" && h.id !== "undefined" ? h.id : null;
+          if (validId) {
+            return {
+              ...d,
+              habits: d.habits.map((x) => (x.id === validId ? ({ ...x, ...h, id: validId } as Habit) : x)),
+            };
+          }
+          const newId = uid();
+          const cleanH = { ...h };
+          delete cleanH.id;
+          const newHabit: Habit = {
+            frequency_type: "harian",
+            frequency_target: 1,
+            preferred_time: "07:00",
+            is_active: true,
+            created_at: new Date().toISOString(),
+            icon: "✨",
+            color: "lilac",
+            ...cleanH,
+            id: newId,
+          };
+          return {
+            ...d,
+            habits: [...d.habits, newHabit],
+          };
+        }),
+      deleteHabit: (id: string) => {
+        if (!id || id === "undefined") return;
+        update((d) => ({
+          ...d,
+          habits: d.habits.filter((h) => h.id !== id),
+          habitLogs: d.habitLogs.filter((l) => l.habit_id !== id),
+        }));
+      },
 
       saveSchedule: (s: Partial<Schedule> & { title: string; start_at: string }) =>
-        update((d) =>
-          s.id
-            ? {
-                ...d,
-                schedules: d.schedules
-                  .map((x) => (x.id === s.id ? ({ ...x, ...s, status: x.status === "terlewat" ? "terjadwal" : x.status } as Schedule) : x))
-                  .map((x) => ({ ...x, status: effectiveStatus(x) })),
-              }
-            : { ...d, schedules: [...d.schedules, { id: uid(), notes: "", status: "terjadwal", icon: "📌", color: "sky", ...s } as Schedule] }
-        ),
+        update((d) => {
+          const validId = s.id && typeof s.id === "string" && s.id !== "undefined" ? s.id : null;
+          if (validId) {
+            return {
+              ...d,
+              schedules: d.schedules
+                .map((x) =>
+                  x.id === validId
+                    ? ({
+                        ...x,
+                        ...s,
+                        id: validId,
+                        status: x.status === "terlewat" ? "terjadwal" : (s.status || x.status),
+                      } as Schedule)
+                    : x
+                )
+                .map((x) => ({ ...x, status: effectiveStatus(x) })),
+            };
+          }
+          const newId = uid();
+          const cleanS = { ...s };
+          delete cleanS.id;
+          const newSchedule: Schedule = {
+            notes: "",
+            status: "terjadwal",
+            icon: "📌",
+            color: "sky",
+            ...cleanS,
+            id: newId,
+          };
+          return {
+            ...d,
+            schedules: [...d.schedules, { ...newSchedule, status: effectiveStatus(newSchedule) }],
+          };
+        }),
       toggleSchedule: (s: Schedule) => {
         const done = s.status === "selesai";
         update((d) => ({
@@ -534,23 +639,40 @@ const useStoreValue = () => {
             return { ...nx, status: effectiveStatus(nx) };
           }),
         })),
-      deleteSchedule: (id: string) => update((d) => ({ ...d, schedules: d.schedules.filter((s) => s.id !== id) })),
+      deleteSchedule: (id: string) => {
+        if (!id || id === "undefined") return;
+        update((d) => ({ ...d, schedules: d.schedules.filter((s) => s.id !== id) }));
+      },
 
       saveGoal: (g: Partial<Goal> & { title: string }, stepTitles?: string[]) =>
         update((d) => {
-          if (g.id) return { ...d, goals: d.goals.map((x) => (x.id === g.id ? ({ ...x, ...g } as Goal) : x)) };
+          const validId = g.id && typeof g.id === "string" && g.id !== "undefined" ? g.id : null;
+          if (validId) {
+            return {
+              ...d,
+              goals: d.goals.map((x) => (x.id === validId ? ({ ...x, ...g, id: validId } as Goal) : x)),
+            };
+          }
           const id = uid();
+          const cleanG = { ...g };
+          delete cleanG.id;
           const goal: Goal = {
-            id,
             reason: "",
             target_date: ymd(addDays(startOfDay(new Date()), 30)),
             progress: 0,
             status: "aktif",
             created_at: new Date().toISOString(),
             color: "lilac",
-            ...g,
-          } as Goal;
-          const steps: GoalStep[] = (stepTitles || []).filter(Boolean).map((t, i) => ({ id: uid(), goal_id: id, title: t, is_done: false, order_index: i }));
+            ...cleanG,
+            id,
+          };
+          const steps: GoalStep[] = (stepTitles || []).filter(Boolean).map((t, i) => ({
+            id: uid(),
+            goal_id: id,
+            title: t,
+            is_done: false,
+            order_index: i,
+          }));
           return { ...d, goals: [goal, ...d.goals], steps: [...d.steps, ...steps] };
         }),
       setGoalStatus: (id: string, status: Goal["status"]) =>
@@ -560,8 +682,14 @@ const useStoreValue = () => {
             g.id === id ? { ...g, status, completed_at: status === "selesai" ? new Date().toISOString() : g.completed_at, progress: status === "selesai" ? 100 : g.progress } : g
           ),
         })),
-      deleteGoal: (id: string) =>
-        update((d) => ({ ...d, goals: d.goals.filter((g) => g.id !== id), steps: d.steps.filter((s) => s.goal_id !== id) })),
+      deleteGoal: (id: string) => {
+        if (!id || id === "undefined") return;
+        update((d) => ({
+          ...d,
+          goals: d.goals.filter((g) => g.id !== id),
+          steps: d.steps.filter((s) => s.goal_id !== id),
+        }));
+      },
       addStep: (goalId: string, title: string) =>
         update((d) => ({ ...d, steps: [...d.steps, { id: uid(), goal_id: goalId, title, is_done: false, order_index: d.steps.length }] })),
       toggleStep: (id: string) =>
@@ -569,7 +697,10 @@ const useStoreValue = () => {
           ...d,
           steps: d.steps.map((s) => (s.id === id ? { ...s, is_done: !s.is_done, done_at: !s.is_done ? new Date().toISOString() : undefined } : s)),
         })),
-      deleteStep: (id: string) => update((d) => ({ ...d, steps: d.steps.filter((s) => s.id !== id) })),
+      deleteStep: (id: string) => {
+        if (!id || id === "undefined") return;
+        update((d) => ({ ...d, steps: d.steps.filter((s) => s.id !== id) }));
+      },
 
       addTransaction: (t: Omit<Transaction, "id">) => {
         const id = uid();
@@ -578,7 +709,10 @@ const useStoreValue = () => {
           update((d) => ({ ...d, transactions: d.transactions.filter((x) => x.id !== id) }))
         );
       },
-      deleteTransaction: (id: string) => update((d) => ({ ...d, transactions: d.transactions.filter((t) => t.id !== id) })),
+      deleteTransaction: (id: string) => {
+        if (!id || id === "undefined") return;
+        update((d) => ({ ...d, transactions: d.transactions.filter((t) => t.id !== id) }));
+      },
       addCategory: (c: Omit<Category, "id">) => update((d) => ({ ...d, categories: [...d.categories, { ...c, id: uid() }] })),
 
       readReminder: (id: string) => update((d) => ({ ...d, reminders: d.reminders.map((r) => (r.id === id ? { ...r, is_read: true } : r)) })),
